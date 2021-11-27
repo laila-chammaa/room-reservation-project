@@ -3,14 +3,13 @@ package Replicas.Replica1.udp;
 
 import Replicas.Replica1.com.ServerInterface;
 import Replicas.Replica1.model.CampusID;
-import Replicas.Replica1.model.Timeslot;
 
 public class CampusUDP implements CampusUDPInterface {
     private static final long serialVersionUID = 1L;
 
     private String studentID;
     private int newRoomNo;
-    private Timeslot newTimeSlot;
+    private String newTimeSlot;
     private CampusID newCampusID;
     private String date;
     private String operationType;
@@ -18,7 +17,7 @@ public class CampusUDP implements CampusUDPInterface {
     private int availableTimeSlot;
 
     //Constructor for inter-campus booking change
-    public CampusUDP(String studentID, CampusID newCampusName, int newRoomNo, Timeslot newTimeSlot, String date) {
+    public CampusUDP(String studentID, CampusID newCampusName, int newRoomNo, String newTimeSlot, String date) {
         this.studentID = studentID;
         this.newCampusID = newCampusName;
         this.newRoomNo = newRoomNo;

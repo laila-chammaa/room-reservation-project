@@ -2,7 +2,6 @@ package Replicas.Replica1.com;
 
 import Replicas.Replica1.model.Booking;
 import Replicas.Replica1.model.CampusID;
-import Replicas.Replica1.model.Timeslot;
 import Replicas.Replica1.udp.CampusUDP;
 import Replicas.Replica1.udp.CampusUDPInterface;
 import Replicas.Replica1.udp.UDPClient;
@@ -124,7 +123,7 @@ public class CampusServer implements ServerInterface {
     }
 
     @Override
-    public String createRoom(String adminID, int roomNumber, String date, Timeslot[] listOfTimeSlots) {
+    public String createRoom(String adminID, int roomNumber, String date, String[] listOfTimeSlots) {
         String resultLog;
         resultLog = validateAdmin(adminID);
         if (resultLog != null) {
@@ -150,7 +149,7 @@ public class CampusServer implements ServerInterface {
         return resultLog;
     }
 
-    private String createRecord(int roomNumber, String date, Timeslot[] listOfTimeSlots) {
+    private String createRecord(int roomNumber, String date, String[] listOfTimeSlots) {
         String resultLog;
         String recordID = "RR" + String.format("%05d", recordIdCount);
         incrementRecordID();
@@ -160,7 +159,7 @@ public class CampusServer implements ServerInterface {
         }
         roomRecords.put(recordID, new AbstractMap.SimpleEntry<>(date, roomNumber));
         List<Booking> newBookings = new ArrayList<>();
-        for (Timeslot slot : listOfTimeSlots) {
+        for (String slot : listOfTimeSlots) {
             newBookings.add(new Booking(recordID, null, slot));
         }
         bookingRecords.put(recordID, newBookings);
@@ -169,11 +168,11 @@ public class CampusServer implements ServerInterface {
         return resultLog;
     }
 
-    private String updateRecord(String recordID, Timeslot[] listOfTimeSlots) {
+    private String updateRecord(String recordID, String[] listOfTimeSlots) {
         String resultLog;
         List<Booking> previousBookings = bookingRecords.get(recordID);
         List<Booking> newBookings = new ArrayList<>(previousBookings);
-        for (Timeslot slot : listOfTimeSlots) {
+        for (String slot : listOfTimeSlots) {
             newBookings.add(new Booking(recordID, null, slot));
         }
         bookingRecords.put(recordID, newBookings);
@@ -184,7 +183,7 @@ public class CampusServer implements ServerInterface {
     }
 
     @Override
-    public String deleteRoom(String adminID, int roomNumber, String date, Timeslot[] listOfTimeSlots) {
+    public String deleteRoom(String adminID, int roomNumber, String date, String[] listOfTimeSlots) {
 
         String resultLog;
         resultLog = validateAdmin(adminID);
@@ -225,14 +224,14 @@ public class CampusServer implements ServerInterface {
 
     @Override
     public String bookRoom(String studentID, CampusID campusID, int roomNumber, String date,
-                           Timeslot timeslot) {
+                           String timeslot) {
 
         String resultLog;
         resultLog = validateStudent(studentID);
         if (resultLog != null) {
             return resultLog;
         }
-        resultLog = validateDateTimeSlot(date, new Timeslot[]{timeslot});
+        resultLog = validateDateTimeSlot(date, new String[]{timeslot});
         if (resultLog != null) {
             return resultLog;
         }
@@ -242,7 +241,7 @@ public class CampusServer implements ServerInterface {
             try {
                 this.logger.info(String.format("Server Log | Forwarding Request to %s Server: bookRoom | StudentID: %s " +
                                 "| Room number: %d | Date: %s | Timeslot: %s", campusID.toString(), studentID, roomNumber,
-                        date, timeslot.toString()));
+                        date, timeslot));
                 CampusServerService service = new CampusServerService();
                 QName qName = new QName("http://com/", campusID.name() + "CampusServerPort");
                 ServerInterface otherServer = service.getPort(qName, ServerInterface.class);
@@ -274,7 +273,7 @@ public class CampusServer implements ServerInterface {
                 booking.get().book(studentID);
                 setStuBookingCnt(studentID, date, 1);
                 String bookingID = booking.get().getBookingID();
-                resultLog = String.format("Server Log | Room record %s was booked successfully. BookingID: %s",
+                resultLog = String.format("Server Log | Room record %s was booked successfully. Booking ID: %s",
                         recordID, bookingID);
                 this.logger.info(resultLog);
             } else {
@@ -322,14 +321,14 @@ public class CampusServer implements ServerInterface {
 
     @Override
     public synchronized String changeReservation(String studentID, String bookingId, CampusID newCampusName, int newRoomNo,
-                                                 Timeslot newTimeSlot) {
-        String resultLog = validateDateTimeSlot(null, new Timeslot[]{newTimeSlot});
+                                                 String newTimeSlot) {
+        String resultLog = validateDateTimeSlot(null, new String[]{newTimeSlot});
         if (resultLog != null) {
             return resultLog;
         }
         this.logger.info(String.format("Server Log | Request: changeReservation | StudentID: %s | " +
                         "BookingID: %s | New CampusID: %s | New room: %d | New Timeslot: %s", studentID, bookingId,
-                newCampusName.name(), newRoomNo, newTimeSlot.toString()));
+                newCampusName.name(), newRoomNo, newTimeSlot));
 
         //getting date from bookingId
         String date;
@@ -354,7 +353,7 @@ public class CampusServer implements ServerInterface {
         return resultLog;
     }
 
-    private String processRemoteChange(String studentID, String bookingId, int newRoomNo, Timeslot newTimeSlot,
+    private String processRemoteChange(String studentID, String bookingId, int newRoomNo, String newTimeSlot,
                                        CampusID newCampusID, String date) {
         String resultLog = null;
         List<Booking> bookingList = bookingRecords.values().stream().flatMap(List::stream).collect(Collectors.toList());
@@ -407,7 +406,7 @@ public class CampusServer implements ServerInterface {
     }
 
     private String processLocalChange(String studentID, String bookingId, CampusID newCampusName,
-                                      int newRoomNo, Timeslot newTimeSlot, String date) {
+                                      int newRoomNo, String newTimeSlot, String date) {
         String resultLog;
         List<Booking> bookingList = bookingRecords.values().stream().flatMap(List::stream).collect(Collectors.toList());
         Optional<Booking> originalBooking = bookingList.stream().filter(b -> b.getBookingID() != null &&
@@ -560,11 +559,13 @@ public class CampusServer implements ServerInterface {
         return null;
     }
 
-    private String validateDateTimeSlot(String date, Timeslot[] listOfTimeSlots) {
+    private String validateDateTimeSlot(String date, String[] listOfTimeSlots) {
         if (listOfTimeSlots != null) {
-            for (Timeslot slot : listOfTimeSlots) {
-                if (slot.getStart() < 0 || slot.getStart() >= 24 || slot.getEnd() < 0 ||
-                        slot.getEnd() >= 24 || slot.getStart() >= slot.getEnd()) {
+            for (String slot : listOfTimeSlots) {
+                //TODO: test this
+                double start = Double.parseDouble(slot.substring(0, slot.indexOf("-")));
+                double end = Double.parseDouble(slot.substring(slot.indexOf("-")));
+                if (start < 0 || start >= 24 || end < 0 || end >= 24 || start >= end) {
                     return "Invalid timeslot format. Use the 24h clock.";
                 }
             }
