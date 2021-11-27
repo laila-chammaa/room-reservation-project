@@ -1,7 +1,6 @@
 package Replicas.Replica1.model;
 
 import java.util.Objects;
-import java.util.UUID;
 
 public class Booking {
     private String recordID;
@@ -13,16 +12,6 @@ public class Booking {
         this.recordID = recordID;
         this.bookedBy = bookedBy;
         this.timeslot = timeslot;
-        if (bookedBy != null) {
-            this.bookingID = UUID.randomUUID().toString();
-        }
-    }
-
-    public void book(String bookedBy) {
-        if (bookedBy != null) {
-            this.bookedBy = bookedBy;
-            this.bookingID = UUID.randomUUID().toString();
-        }
     }
 
     public String getRecordID() {

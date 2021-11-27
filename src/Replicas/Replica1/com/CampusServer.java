@@ -270,7 +270,8 @@ public class CampusServer implements ServerInterface {
             Optional<Booking> booking = bookingRecords.get(recordID)
                     .stream().filter(b -> b.getTimeslot().equals(timeslot)).findFirst();
             if (booking.isPresent() && booking.get().getBookedBy() == null) {
-                booking.get().book(studentID);
+                booking.get().setBookedBy(studentID);
+                booking.get().setBookingID(generateBookingID(studentID, campusID, roomNumber, date, timeslot));
                 setStuBookingCnt(studentID, date, 1);
                 String bookingID = booking.get().getBookingID();
                 resultLog = String.format("Server Log | Room record %s was booked successfully. Booking ID: %s",
@@ -288,6 +289,10 @@ public class CampusServer implements ServerInterface {
             this.logger.warning(resultLog);
         }
         return resultLog;
+    }
+
+    private String generateBookingID(String studentID, CampusID campusID, int roomNumber, String date, String timeslot) {
+        return String.format("%s-%s-%d-%s-%s", studentID, campusID.name(), roomNumber, date, timeslot);
     }
 
     @Override
