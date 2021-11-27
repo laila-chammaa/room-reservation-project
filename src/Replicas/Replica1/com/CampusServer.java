@@ -562,11 +562,11 @@ public class CampusServer implements ServerInterface {
     private String validateDateTimeSlot(String date, String[] listOfTimeSlots) {
         if (listOfTimeSlots != null) {
             for (String slot : listOfTimeSlots) {
-                //TODO: test this
-                double start = Double.parseDouble(slot.substring(0, slot.indexOf("-")));
-                double end = Double.parseDouble(slot.substring(slot.indexOf("-")));
+                // expecting "12:00-13:00"
+                double start = Double.parseDouble(slot.substring(0, slot.indexOf("-")).replace(":",""))/100;
+                double end = Double.parseDouble(slot.substring(slot.indexOf("-")+1).replace(":",""))/100;
                 if (start < 0 || start >= 24 || end < 0 || end >= 24 || start >= end) {
-                    return "Invalid timeslot format. Use the 24h clock.";
+                    return "Invalid timeslot format. Use the 24h clock. Format: '12:00-13:00'";
                 }
             }
         }
