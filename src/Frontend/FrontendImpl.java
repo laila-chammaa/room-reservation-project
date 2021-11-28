@@ -2,9 +2,9 @@ package Frontend;
 
 import DRRS.Config;
 import DRRS.MessageKeys;
-import Replicas.Replica1.model.CampusID;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 
 import javax.jws.WebService;
 import java.io.IOException;
@@ -112,7 +112,7 @@ public class FrontendImpl implements FrontendInterface {
     }
 
     @Override
-    public String bookRoom(String studentID, CampusID campusID, int roomNumber, String date,
+    public String bookRoom(String studentID, String campusID, int roomNumber, String date,
                            String timeslot) {
 
         JSONObject payload = new JSONObject();
@@ -153,11 +153,11 @@ public class FrontendImpl implements FrontendInterface {
     }
 
     @Override
-    public synchronized String changeReservation(String studentID, String bookingId, CampusID newCampusName, int newRoomNo,
+    public synchronized String changeReservation(String studentID, String bookingId, String newCampusName, int newRoomNo,
                                                  String newTimeSlot) {
         this.logger.info(String.format("Server Log | Request: changeReservation | StudentID: %s | " +
                         "BookingID: %s | New CampusID: %s | New room: %d | New Timeslot: %s", studentID, bookingId,
-                newCampusName.name(), newRoomNo, newTimeSlot));
+                newCampusName, newRoomNo, newTimeSlot));
 
         JSONObject payload = new JSONObject();
         Message message = null;
@@ -433,10 +433,8 @@ public class FrontendImpl implements FrontendInterface {
 
                         receiveFromReplica.release();
                         System.out.println("Received response from Replica on port " + port + " for message ID: " + jsonMessage.get(MessageKeys.MESSAGE_ID).toString() + " Semaphore: " + receiveFromReplica.availablePermits());
-                    } catch (org.json.simple.parser.ParseException e) {
+                    } catch (ParseException | IOException e) {
                         e.printStackTrace();
-                    } catch (IOException e) {
-                        continue;
                     }
                 }
             } catch (SocketException e1) {

@@ -1,8 +1,7 @@
 package Replicas.Replica1.udp;
 
 
-import Replicas.Replica1.com.ServerInterface;
-import Replicas.Replica1.model.CampusID;
+import Replicas.Replica1.com.CampusServer;
 
 public class CampusUDP implements CampusUDPInterface {
     private static final long serialVersionUID = 1L;
@@ -10,14 +9,15 @@ public class CampusUDP implements CampusUDPInterface {
     private String studentID;
     private int newRoomNo;
     private String newTimeSlot;
-    private CampusID newCampusID;
+    private String newCampusID;
     private String date;
     private String operationType;
     private boolean transferStatus = false;
+    private String resultLog;
     private int availableTimeSlot;
 
     //Constructor for inter-campus booking change
-    public CampusUDP(String studentID, CampusID newCampusName, int newRoomNo, String newTimeSlot, String date) {
+    public CampusUDP(String studentID, String newCampusName, int newRoomNo, String newTimeSlot, String date) {
         this.studentID = studentID;
         this.newCampusID = newCampusName;
         this.newRoomNo = newRoomNo;
@@ -38,12 +38,16 @@ public class CampusUDP implements CampusUDPInterface {
     public int getLocalAvailableTimeSlot() {
         return availableTimeSlot;
     }
+    public String getResultLog() {
+        return resultLog;
+    }
+
 
     @Override
-    public void execute(ServerInterface campusServer, CampusID campusID) {
+    public void execute(CampusServer campusServer, String campusID) {
         try {
             if (this.operationType.equals("bookingChange")) {
-                String resultLog = campusServer.bookRoom(studentID, newCampusID, newRoomNo, date, newTimeSlot);
+                resultLog = campusServer.bookRoom(studentID, newCampusID, newRoomNo, date, newTimeSlot);
                 transferStatus = resultLog.contains("success");
             } else if (this.operationType.equals("getAvailableTimeSlots")) {
                 availableTimeSlot = campusServer.getLocalAvailableTimeSlot();

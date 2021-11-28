@@ -1,11 +1,6 @@
-package Frontend;
+package Replicas;
 
-import javax.jws.WebService;
-import javax.jws.soap.SOAPBinding;
-
-@WebService
-@SOAPBinding(style = SOAPBinding.Style.RPC)
-public interface FrontendInterface {
+public interface CampusServerInterface extends Runnable {
     //ADMIN ONLY
     String createRoom(String adminID, int roomNumber, String date, String[] listOfTimeSlots);
     String deleteRoom(String adminID, int roomNumber, String date, String[] listOfTimeSlots);
@@ -15,6 +10,4 @@ public interface FrontendInterface {
     String getAvailableTimeSlot(String date);
     String cancelBooking(String studentID, String bookingID);
     String changeReservation(String studentID, String bookingId, String newCampusName, int newRoomNo, String newTimeSlot);
-
-    void shutdown();
 }

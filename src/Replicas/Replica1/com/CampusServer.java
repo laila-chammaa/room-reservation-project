@@ -1,40 +1,43 @@
 package Replicas.Replica1.com;
 
+import Replicas.CampusServerInterface;
 import Replicas.Replica1.model.Booking;
-import Replicas.Replica1.model.CampusID;
 import Replicas.Replica1.udp.CampusUDP;
 import Replicas.Replica1.udp.CampusUDPInterface;
 import Replicas.Replica1.udp.UDPClient;
 import Replicas.Replica1.udp.UDPServer;
 
 import javax.jws.WebService;
-import javax.xml.namespace.QName;
 import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.FileHandler;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 import java.util.stream.Collectors;
 
-import static Replicas.Replica1.model.CampusID.DVL;
 
-
-@WebService(endpointInterface = "Replicas.Replica1.com.ServerInterface")
-public class CampusServer implements ServerInterface {
+@WebService(endpointInterface = "Replicas.CampusServerInterface")
+public class CampusServer implements CampusServerInterface {
     private static final int MAX_NUM_BOOKING = 3;
     private static final int USER_TYPE_POS = 3;
 
     //Variable for each separate bank server
-    private CampusID campusID;
+    private String campusID;
+
+    private final AtomicBoolean listeningForRequests = new AtomicBoolean(true);
 
     private static ArrayList<HashMap<String, Integer>> stuBkngCntMap;
 
     private static int recordIdCount = 1;
 
-    private HashMap<String, Map.Entry<String, Integer>> roomRecords;
-    private HashMap<String, List<Booking>> bookingRecords;
+    private Map<String, Map.Entry<String, Integer>> roomRecords;
+    private Map<String, List<Booking>> bookingRecords;
 
     private Logger logger;
 
@@ -47,16 +50,19 @@ public class CampusServer implements ServerInterface {
     //Holds other servers' addresses : ["ServerName", "hostName:portNumber"]
     HashMap<String, String> serversList;
 
+    private static final Object bookRoomRequestLock = new Object();
+    private static final Object cancelBookingRequestLock = new Object();
+
     public CampusServer() {
-        this.campusID = DVL; //default value
+        this.campusID = "DVL"; //default value
         this.UDPHost = "localhost";
         this.UDPPort = 8080;
         this.serversList = new HashMap<>(); //default value
 
         this.UDPServer = new UDPServer(UDPHost, UDPPort, this);
 
-        this.roomRecords = new HashMap<>();
-        this.bookingRecords = new HashMap<>();
+        this.roomRecords = new ConcurrentHashMap<>();
+        this.bookingRecords = new ConcurrentHashMap<>();
 
         stuBkngCntMap = new ArrayList<>(55);
         for (int i = 0; i < 55; i++)
@@ -70,7 +76,7 @@ public class CampusServer implements ServerInterface {
         this.logger.info("Server: " + campusID + " port is : " + UDPPort);
     }
 
-    public CampusServer(CampusID campusID, String host, int port, HashMap<String, String> serversList) {
+    public CampusServer(String campusID, String host, int port, HashMap<String, String> serversList) {
         this.campusID = campusID;
         this.UDPHost = host;
         this.UDPPort = port;
@@ -79,8 +85,8 @@ public class CampusServer implements ServerInterface {
         this.UDPServer = new UDPServer(UDPHost, UDPPort, this);
         new Thread(UDPServer).start();
 
-        this.roomRecords = new HashMap<>();
-        this.bookingRecords = new HashMap<>();
+        this.roomRecords = new ConcurrentHashMap<>();
+        this.bookingRecords = new ConcurrentHashMap<>();
 
         stuBkngCntMap = new ArrayList<>(55);
         for (int i = 0; i < 55; i++)
@@ -95,7 +101,7 @@ public class CampusServer implements ServerInterface {
     }
 
     private void initiateLogger() {
-        Logger logger = Logger.getLogger("Server Logs/" + this.campusID.toString() + "- Server Log");
+        Logger logger = Logger.getLogger("Server Logs/" + this.campusID + "- Server Log");
         FileHandler fh;
 
         try {
@@ -223,7 +229,7 @@ public class CampusServer implements ServerInterface {
     }
 
     @Override
-    public String bookRoom(String studentID, CampusID campusID, int roomNumber, String date,
+    public String bookRoom(String studentID, String campusID, int roomNumber, String date,
                            String timeslot) {
 
         String resultLog;
@@ -237,24 +243,28 @@ public class CampusServer implements ServerInterface {
         }
 
         //forward request to other server
-        if (campusID != this.campusID) {
+        if (!campusID.equals(this.campusID)) {
             try {
                 this.logger.info(String.format("Server Log | Forwarding Request to %s Server: bookRoom | StudentID: %s " +
-                                "| Room number: %d | Date: %s | Timeslot: %s", campusID.toString(), studentID, roomNumber,
+                                "| Room number: %d | Date: %s | Timeslot: %s", campusID, studentID, roomNumber,
                         date, timeslot));
-                CampusServerService service = new CampusServerService();
-                QName qName = new QName("http://com/", campusID.name() + "CampusServerPort");
-                ServerInterface otherServer = service.getPort(qName, ServerInterface.class);
-                return otherServer.bookRoom(studentID, campusID, roomNumber, date, timeslot);
+                UDPClient requestClient = getUdpClient(campusID);
+
+                CampusUDPInterface timeslotReq = new CampusUDP(studentID, campusID, roomNumber, date, timeslot);
+                requestClient.send(timeslotReq);
+
+                //3.4 Receive the response.
+                CampusUDPInterface timeslotResp = requestClient.getResponse();
+                return ((CampusUDP) timeslotResp).getResultLog();
             } catch (Exception e) {
-                resultLog = "Server Log | Request: bookRoom | ERROR: " + campusID.toString() + " Not Bound.";
+                resultLog = "Server Log | Request: bookRoom | ERROR: " + campusID + " Not Bound.";
                 this.logger.severe(resultLog);
                 e.printStackTrace();
                 return resultLog;
             }
         }
         this.logger.info(String.format("Server Log | Request: bookRoom | StudentID: %s | " +
-                "Room number: %d | Date: %s | Timeslot: %s", studentID, roomNumber, date, timeslot.toString()));
+                "Room number: %d | Date: %s | Timeslot: %s", studentID, roomNumber, date, timeslot));
 
         if (getStuBookingCnt(studentID, date) >= MAX_NUM_BOOKING) {
             resultLog = String.format("Server Log | ERROR: Booking limit (%d) for the week was reached | " +
@@ -291,8 +301,20 @@ public class CampusServer implements ServerInterface {
         return resultLog;
     }
 
-    private String generateBookingID(String studentID, CampusID campusID, int roomNumber, String date, String timeslot) {
-        return String.format("%s-%s-%d-%s-%s", studentID, campusID.name(), roomNumber, date, timeslot);
+    private UDPClient getUdpClient(String campusID) {
+        //3.1 Extract the key that is associated with the destination branch.
+        String connectionData = serversList.get(campusID);
+
+        //3.2 Extract the host and IP [host:IP]
+        String hostDest = connectionData.split(":")[0];
+        int portDest = Integer.parseInt(connectionData.split(":")[1]);
+
+        //3.3 Create an UDPClient and prepare the request.
+        return new UDPClient(hostDest, portDest, campusID);
+    }
+
+    private String generateBookingID(String studentID, String campusID, int roomNumber, String date, String timeslot) {
+        return String.format("%s-%s-%d-%s-%s", studentID, campusID, roomNumber, date, timeslot);
     }
 
     @Override
@@ -325,7 +347,7 @@ public class CampusServer implements ServerInterface {
     }
 
     @Override
-    public synchronized String changeReservation(String studentID, String bookingId, CampusID newCampusName, int newRoomNo,
+    public synchronized String changeReservation(String studentID, String bookingId, String newCampusName, int newRoomNo,
                                                  String newTimeSlot) {
         String resultLog = validateDateTimeSlot(null, new String[]{newTimeSlot});
         if (resultLog != null) {
@@ -333,7 +355,7 @@ public class CampusServer implements ServerInterface {
         }
         this.logger.info(String.format("Server Log | Request: changeReservation | StudentID: %s | " +
                         "BookingID: %s | New CampusID: %s | New room: %d | New Timeslot: %s", studentID, bookingId,
-                newCampusName.name(), newRoomNo, newTimeSlot));
+                newCampusName, newRoomNo, newTimeSlot));
 
         //getting date from bookingId
         String date;
@@ -345,7 +367,7 @@ public class CampusServer implements ServerInterface {
             Map.Entry<String, Integer> record = roomRecords.get(booking.get().getRecordID());
             date = record.getKey();
             //local-local change
-            if (this.campusID == newCampusName) {
+            if (this.campusID.equals(newCampusName)) {
                 resultLog = processLocalChange(studentID, bookingId, newCampusName, newRoomNo, newTimeSlot, date);
             } else { //local-remote change
                 resultLog = processRemoteChange(studentID, bookingId, newRoomNo, newTimeSlot, newCampusName, date);
@@ -359,7 +381,7 @@ public class CampusServer implements ServerInterface {
     }
 
     private String processRemoteChange(String studentID, String bookingId, int newRoomNo, String newTimeSlot,
-                                       CampusID newCampusID, String date) {
+                                       String newCampusID, String date) {
         String resultLog = null;
         List<Booking> bookingList = bookingRecords.values().stream().flatMap(List::stream).collect(Collectors.toList());
         Optional<Booking> originalBooking = bookingList.stream().filter(b -> b.getBookingID() != null &&
@@ -368,18 +390,11 @@ public class CampusServer implements ServerInterface {
         if (cancelBookingStatus.contains("success")) {
             // Loop through the serversList to find the information of the remote server
             for (String remoteCampusID : serversList.keySet()) {
-                if (newCampusID.name().equals(remoteCampusID)) {
+                if (newCampusID.equals(remoteCampusID)) {
                     this.logger.info("Server Log: | Change Reservation Log: | Connection Initialized.");
 
-                    //3.1 Extract the key that is associated with the destination branch.
-                    String connectionData = serversList.get(newCampusID.name());
-
-                    //3.2 Extract the host and IP [host:IP]
-                    String hostDest = connectionData.split(":")[0];
-                    int portDest = Integer.parseInt(connectionData.split(":")[1]);
-
                     //3.3 Create an UDPClient and prepare the request.
-                    UDPClient requestClient = new UDPClient(hostDest, portDest, campusID);
+                    UDPClient requestClient = getUdpClient(newCampusID);
 
                     CampusUDPInterface transferReq = new CampusUDP(studentID, newCampusID, newRoomNo, newTimeSlot, date);
                     requestClient.send(transferReq);
@@ -391,7 +406,7 @@ public class CampusServer implements ServerInterface {
                     if (((CampusUDP) transferResp).isTransferStatus()) {
                         resultLog = String.format("Server Log | Booking was changed successfully successfully. " +
                                         "StudentID: %s | BookingID: %s | New CampusID: %s | New room: %d | New Timeslot: %s",
-                                studentID, bookingId, newCampusID.name(), newRoomNo, newTimeSlot.toString());
+                                studentID, bookingId, newCampusID, newRoomNo, newTimeSlot);
                         this.logger.info(resultLog);
                     } else {
                         //We can't cancel for some reason. Book the original room back
@@ -410,7 +425,7 @@ public class CampusServer implements ServerInterface {
         return resultLog;
     }
 
-    private String processLocalChange(String studentID, String bookingId, CampusID newCampusName,
+    private String processLocalChange(String studentID, String bookingId, String newCampusName,
                                       int newRoomNo, String newTimeSlot, String date) {
         String resultLog;
         List<Booking> bookingList = bookingRecords.values().stream().flatMap(List::stream).collect(Collectors.toList());
@@ -423,7 +438,7 @@ public class CampusServer implements ServerInterface {
             if (bookingStatus.contains("success")) {
                 resultLog = String.format("Server Log | Booking was changed successfully successfully. " +
                                 "StudentID: %s | BookingID: %s | New CampusID: %s | New room: %d | New Timeslot: %s",
-                        studentID, bookingId, campusID.name(), newRoomNo, newTimeSlot.toString());
+                        studentID, bookingId, campusID, newRoomNo, newTimeSlot);
                 this.logger.info(resultLog);
             } else {
                 //We can't book for some reason. Book the original room back
@@ -446,34 +461,26 @@ public class CampusServer implements ServerInterface {
         this.logger.warning("Server Log | ERROR Request: changeReservation | Changing booking wasn't successful, rebooking original room. ");
         Map.Entry<String, Integer> record = roomRecords.get(booking.getRecordID());
         int roomNum = record.getValue();
-        bookRoom(studentID, CampusID.valueOf(this.campusID.name()),
-                roomNum, date, booking.getTimeslot());
+        bookRoom(studentID, this.campusID, roomNum, date, booking.getTimeslot());
     }
 
     @Override
     public String getAvailableTimeSlot(String date) {
         this.logger.info(String.format("Server Log | Request: getAvailableTimeSlot | Date: %s", date));
 
-        HashMap<CampusID, Integer> totalTimeSlotCount = new HashMap<>();
+        HashMap<String, Integer> totalTimeSlotCount = new HashMap<>();
         int localTimeSlotCount = getLocalAvailableTimeSlot();
         totalTimeSlotCount.put(this.campusID, localTimeSlotCount);
         String resultLog;
 
         //1. Create UDP Socket
         for (String campusServer : serversList.keySet()) {
-            if (campusServer.equals(this.campusID.toString())) {
+            if (campusServer.equals(this.campusID)) {
                 continue;
             }
 
             //3.1 Extract the key that is associated with the destination branch.
-            String connectionData = serversList.get(campusServer);
-
-            //3.2 Extract the host and IP [host:IP]
-            String hostDest = connectionData.split(":")[0];
-            int portDest = Integer.parseInt(connectionData.split(":")[1]);
-
-            //3.3 Create an UDPClient and prepare the request.
-            UDPClient requestClient = new UDPClient(hostDest, portDest, CampusID.valueOf(campusServer));
+            UDPClient requestClient = getUdpClient(campusServer);
 
             CampusUDPInterface timeslotReq = new CampusUDP();
             requestClient.send(timeslotReq);
@@ -489,7 +496,7 @@ public class CampusServer implements ServerInterface {
                         "slots for Campus: %s", campusServer));
             }
 
-            totalTimeSlotCount.put(CampusID.valueOf(campusServer), rData);
+            totalTimeSlotCount.put(campusServer, rData);
             resultLog = "Server Log | Getting the available timeslots was successful.";
             this.logger.info(resultLog);
         }
@@ -497,7 +504,6 @@ public class CampusServer implements ServerInterface {
         return totalTimeSlotCount.toString();
     }
 
-    @Override
     public int getLocalAvailableTimeSlot() {
         List<Booking> bookingList = bookingRecords.values().stream().flatMap(List::stream).collect(Collectors.toList());
         List<Booking> nullBookings = bookingList.stream().filter(b -> b.getBookedBy() == null).collect(Collectors.toList());
@@ -568,8 +574,8 @@ public class CampusServer implements ServerInterface {
         if (listOfTimeSlots != null) {
             for (String slot : listOfTimeSlots) {
                 // expecting "12:00-13:00"
-                double start = Double.parseDouble(slot.substring(0, slot.indexOf("-")).replace(":",""))/100;
-                double end = Double.parseDouble(slot.substring(slot.indexOf("-")+1).replace(":",""))/100;
+                double start = Double.parseDouble(slot.substring(0, slot.indexOf("-")).replace(":", "")) / 100;
+                double end = Double.parseDouble(slot.substring(slot.indexOf("-") + 1).replace(":", "")) / 100;
                 if (start < 0 || start >= 24 || end < 0 || end >= 24 || start >= end) {
                     return "Invalid timeslot format. Use the 24h clock. Format: '12:00-13:00'";
                 }
@@ -585,7 +591,50 @@ public class CampusServer implements ServerInterface {
         return null;
     }
 
-    public CampusID getCampusID() {
+    public String getCampusID() {
         return this.campusID;
+    }
+
+    @Override
+    public void run() {
+        try (DatagramSocket socket = new DatagramSocket(UDPPort)) {
+            //TODO: create a shutdown func to set this to false?
+            while (listeningForRequests.get()) {
+                byte[] receivedBytes = new byte[128];
+                DatagramPacket request = new DatagramPacket(receivedBytes, receivedBytes.length);
+                socket.receive(request);
+
+                String data = new String(receivedBytes);
+
+                String replyMessage;
+
+                //TODO: other requests?
+                if (data.startsWith("getAvailableTimeSlot:")) {
+                    String dateString = data.split("getAvailableTimeSlot:")[1].trim();
+                    replyMessage = this.getAvailableTimeSlot(dateString);
+                } else if (data.startsWith("bookRoom:")) {
+                    synchronized (bookRoomRequestLock) {
+                        String[] params = data.split("bookRoom:")[1].trim().split(";");
+                        String userId = params[0];
+                        String roomNumber = params[1];
+                        String date = params[2];
+                        String timeSlot = params[3];
+                        replyMessage = this.bookRoom(userId, this.campusID, Integer.parseInt(roomNumber), date, timeSlot);
+                    }
+                } else if (data.startsWith("cancelBooking:")) {
+                    synchronized (cancelBookingRequestLock) {
+                        String[] params = data.split("cancelBooking:")[1].trim().split(";");
+                        replyMessage = this.cancelBooking(params[0], params[1]);
+                    }
+                } else {
+                    replyMessage = "Error: invalid request";
+                }
+
+                DatagramPacket reply = new DatagramPacket(replyMessage.getBytes(), replyMessage.getBytes().length, request.getAddress(), request.getPort());
+                socket.send(reply);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }
