@@ -54,14 +54,20 @@ public class CampusImpl implements CampusInterface {
                     int roomNumber = parseRoomNumber(message.getRoomNumber());
                     msg += this.bookRoom(message.getID(), message.getCampusName(), roomNumber, message.getDate(), message.getTimeSlot());
                 } else if (opName.equals("cancelBooking")) {
-                    msg += this.cancelBooking(message.getBookingID());
+                    msg += this.cancelBooking(message.getID(), message.getBookingID());
                 } else if (opName.equals("getAvailableTimeSlot")) {
                     msg += this.getAvailableTimeSlot(message.getDate());
                 } else if (opName.equals("changeReservation")) {
                     int roomNumber = parseRoomNumber(message.getRoomNumber());
-                    msg += this.changeReservation(message.getID(), message.getCampusName(), roomNumber, message.getTimeSlot());
+                    msg += this.changeReservation(message.getID(), message.getBookingID(), message.getCampusName(), roomNumber, message.getTimeSlot());
                 } else if (opName.equals("internalGet")) {
                     msg += this.getEmptyRoomCount(message.getDate()) + " ";
+                } else if (opName.equals("createRoom")) {
+                    int roomNumber = parseRoomNumber(message.getRoomNumber());
+                    msg += this.createRoom(message.getID(), roomNumber, message.getDate(), message.getTimeSlots());
+                } else if (opName.equals("deleteRoom")) {
+                    int roomNumber = parseRoomNumber(message.getRoomNumber());
+                    msg += this.deleteRoom(message.getID(), roomNumber, message.getDate(), message.getTimeSlots());
                 }
 
                 byte[] response = msg.getBytes(StandardCharsets.UTF_8);
@@ -84,7 +90,8 @@ public class CampusImpl implements CampusInterface {
     }
 
     @Override
-    public synchronized String createRoom(int roomNumber, String date, String[] timeSlots) {
+    public synchronized String createRoom(String adminID, int roomNumber, String date, String[] timeSlots) {
+        if (!authenticate(adminID)) return "Failure: failed to authenticate admin";
         String successMessage = "Successfully added timeslots for " + date + " in room " + roomNumber;
 
         if (this.roomRecords.containsKey(date) &&
@@ -129,7 +136,8 @@ public class CampusImpl implements CampusInterface {
     }
 
     @Override
-    public synchronized String deleteRoom(int roomNumber, String date, String[] timeSlots) {
+    public synchronized String deleteRoom(String adminID, int roomNumber, String date, String[] timeSlots) {
+        if (!authenticate(adminID)) return "Failure: failed to authenticate admin";
         StringBuilder deletedRoomsMessage = new StringBuilder();
         // check if room exists first
         if (this.roomRecords.containsKey(date) &&
@@ -160,6 +168,10 @@ public class CampusImpl implements CampusInterface {
         logMessage(roomNumber, "Delete room", timeSlots, deletedRoomsMessage.toString());
 
         return deletedRoomsMessage.toString();
+    }
+
+    private boolean authenticate(String ID) {
+        return ID.charAt(3) == 'A';
     }
 
     @Override
@@ -205,15 +217,15 @@ public class CampusImpl implements CampusInterface {
     }
 
     @Override
-    public synchronized String cancelBooking(String ID) {
+    public synchronized String cancelBooking(String studentID, String bookingID) {
         RoomRecord rr = null;
-        String studentID = ID.split("-")[0];
-        String bookingID = ID.split("-")[1];
+//        String studentID = ID.split("-")[0];
+//        String bookingID = ID.split("-")[1];
         if (CentralRepository.getBookingRecord().containsKey(bookingID)) {
             rr = CentralRepository.getBookingRecord().get(bookingID);
         } else {
             logger.log("Request Type: Cancel booking");
-            logger.log("BookingID: " + ID);
+            logger.log("BookingID: " + bookingID);
             logger.log("Request completed");
             logger.log("Server response: No booked room for that booking ID");
             return "No booked room for that booking ID";
@@ -236,14 +248,14 @@ public class CampusImpl implements CampusInterface {
     }
 
     @Override
-    public synchronized String changeReservation(String ID, String newCampusName, int newRoomNumber, String newTimeSlot) {
+    public synchronized String changeReservation(String studentID, String bookingID, String newCampusName, int newRoomNumber, String newTimeSlot) {
         if (newCampusName.equals(this.serverName)) {
             logger.log("Request Type: Change reservation");
-            logger.log("BookingID: " + ID);
+            logger.log("BookingID: " + bookingID);
             // First check if new room number and new time slot are available, assume same date
             RoomRecord rr = null;
-            String studentID = ID.split("-")[0];
-            String bookingID = ID.split("-")[1];
+//            String studentID = ID.split("-")[0];
+//            String bookingID = ID.split("-")[1];
             // Booking exists
             if (CentralRepository.getBookingRecord().containsKey(bookingID)) {
                 rr = CentralRepository.getBookingRecord().get(bookingID);
@@ -267,7 +279,7 @@ public class CampusImpl implements CampusInterface {
                 RoomRecord newRR = this.roomRecords.get(previousDate).get(newRoomNumber).get(newTimeSlot);
                 // New room can be booked, cancel previous booking and book new room
                 if (!newRR.isBooked()) {
-                    this.cancelBooking(ID);
+                    this.cancelBooking(studentID, bookingID);
                     String msg = this.bookRoom(studentID, this.serverName, newRoomNumber, previousDate, newTimeSlot);
                     logger.log("Request completed");
                     logger.log("Server response: Booking changed, " + msg);
@@ -281,7 +293,7 @@ public class CampusImpl implements CampusInterface {
 
             return "Could not change booking, unknown error!";
         } else {
-            UdpMessage reqMessage = new UdpMessage("changeBooking", ID, newCampusName, Integer.toString(newRoomNumber), newTimeSlot, null, null);
+            UdpMessage reqMessage = new UdpMessage("changeBooking", studentID, newCampusName, Integer.toString(newRoomNumber), newTimeSlot, null, bookingID);
             return udpSend(reqMessage, CentralRepository.getUdpPortNum(newCampusName));
         }
     }

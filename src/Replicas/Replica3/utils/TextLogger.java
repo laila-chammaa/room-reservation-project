@@ -11,8 +11,12 @@ public class TextLogger {
     private Path file;
 
     public TextLogger(String fileName) {
-        this.file = Paths.get(fileName);
+        this.file = Paths.get("Replica3Logs"+ "/" + fileName);
+        Path dirPath = Paths.get("Replica3Logs");
         try {
+            if (!Files.exists(dirPath))
+                Files.createDirectory(dirPath);
+
             if (!Files.exists(this.file))
                 Files.createFile(this.file);
         } catch (IOException e) {

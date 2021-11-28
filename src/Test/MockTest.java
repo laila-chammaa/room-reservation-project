@@ -22,8 +22,8 @@ public class MockTest {
     }
 
     @Test
-    public void replica3Mock() {
+    public void replica3AuthTest() {
         String res = MockUdpMessage.udpTest(CentralRepository.getUdpPortNum("DVL"));
-        Assertions.assertEquals("asdasf booked on campus dvl", res, "Output not as expected!");
+        Assertions.assertEquals("Failure: failed to authenticate admin", res, "Output not as expected!");
     }
 }

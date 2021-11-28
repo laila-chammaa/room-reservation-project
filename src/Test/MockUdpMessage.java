@@ -19,10 +19,10 @@ public class MockUdpMessage {
         try {
             aSocket = new DatagramSocket();
 
-            String[] timeSlots = {"17:00-21:00", "18:00", "19:00", "20:00"};
+            String[] timeSlots = {"17:00-18:00", "18:00-19:00", "19:00-20:00", "20:00-21:00"};
 
             UdpMessage myMessage = new UdpMessage(
-                    "bookRoom", "ID", "DVL", "101", "10:00-11:00", "01-11-2021", null);
+                    "createRoom", "DVLA1111", "DVL", "101", timeSlots, "01-11-2021", null);
 
             ByteArrayOutputStream bStream = new ByteArrayOutputStream();
             ObjectOutput oo = new ObjectOutputStream(bStream);
