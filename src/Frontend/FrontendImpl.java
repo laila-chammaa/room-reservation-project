@@ -9,6 +9,7 @@ import org.json.simple.parser.JSONParser;
 import javax.jws.WebService;
 import java.io.IOException;
 import java.net.*;
+import java.util.Optional;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.FileHandler;
@@ -312,6 +313,7 @@ public class FrontendImpl implements FrontendInterface {
                     continue;
                 }
 
+                //TODO: if we get 2 correct responses, just return? or always wait for 4?
                 if (message.getReturnMessages().size() == 2) {
                     message1 = message.getReturnMessages().get(0);
                     message2 = message.getReturnMessages().get(1);
@@ -324,24 +326,58 @@ public class FrontendImpl implements FrontendInterface {
                 } else if (message.getReturnMessages().size() == 4) {
                     message1 = message.getReturnMessages().get(0);
                     message2 = message.getReturnMessages().get(1);
-                    message3 = message.getReturnMessages().get(2);
-                    message4 = message.getReturnMessages().get(3);
 
-                    if (message1.code.equals(message2.code) && message2.code.equals(message3.code)
-                            && message3.code.equals(message4.code)) {
-                        response = message1.message; // Response to client.
-                        break;
-                    } else {
-                        //TODO: find incorrect response
-                        int port = message1.port;
+                    Optional<ReturnMessage> incorrectMessage = findIncorrectMessage(message);
+
+                    if (incorrectMessage.isPresent()) {
+                        int port = incorrectMessage.get().port;
                         notifyReplicaOfByzantineFailure(port, getIPFromPort(port));
+                        //return correct message to client
+                        if (!message1.equals(incorrectMessage.get())) {
+                            response = message1.message; // Response to client.
+                        } else {
+                            response = message2.message; // Response to client.
+                        }
+                    } else {
+                        response = message1.message; // Response to client.
                     }
+                    break;
                 } else {
                     receiveFromReplica.release(2);
                 }
             }
 
             return response;
+        }
+
+        private Optional<ReturnMessage> findIncorrectMessage(Message message) {
+            ReturnMessage message1, message2, message3, message4;
+
+            message1 = message.getReturnMessages().get(0);
+            message2 = message.getReturnMessages().get(1);
+            message3 = message.getReturnMessages().get(2);
+            message4 = message.getReturnMessages().get(3);
+
+            if (message1.code.equals(message2.code) && message2.code.equals(message3.code)
+                    && message3.code.equals(message4.code)) {
+                return Optional.empty();
+            } else if (message1.code.equals(message2.code) && message2.code.equals(message3.code)) {
+                //message 4 is different
+                return Optional.of(message4);
+            } else if (message1.code.equals(message2.code) && message2.code.equals(message4.code)) {
+                //message 3 is different
+                return Optional.of(message3);
+            } else if (message1.code.equals(message3.code) && message3.code.equals(message4.code)) {
+                //message 2 is different
+                return Optional.of(message2);
+            } else if (message2.code.equals(message3.code) && message3.code.equals(message4.code)) {
+                //message 1 is different
+                return Optional.of(message1);
+            } else {
+                //more than one message is incorrect, no way to find the correct one
+                //TODO: throw error?
+                return Optional.empty();
+            }
         }
 
         private String getIPFromPort(int port) {
