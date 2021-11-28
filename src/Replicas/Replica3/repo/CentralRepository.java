@@ -20,16 +20,4 @@ public class CentralRepository {
         return CentralRepository.bookingRecord;
     }
 
-    public static int getUdpPortNum(String serverName) {
-        switch (serverName) {
-            case "DVL":
-                return 8081;
-            case "WST":
-                return 8082;
-            case "KKL":
-                return 8083;
-            default:
-                return 0;
-        }
-    }
 }

@@ -3,6 +3,7 @@ package Replicas.Replica3.campus;
 import Replicas.Replica3.helpers.Helpers;
 import Replicas.Replica3.repo.CentralRepository;
 import Replicas.Replica3.utils.TextLogger;
+import Replicas.UDPUtils;
 
 import java.io.*;
 import java.net.DatagramPacket;
@@ -49,7 +50,7 @@ public class CampusImpl implements CampusInterface {
         String msg = "";
 
         try {
-            aSocket = new DatagramSocket(CentralRepository.getUdpPortNum(this.serverName));
+            aSocket = new DatagramSocket(UDPUtils.getUdpPortNum(this.serverName));
             byte[] buffer = new byte[4096];
 
             while (true) {
@@ -191,7 +192,7 @@ public class CampusImpl implements CampusInterface {
     public synchronized String bookRoom(String studentID, String campusName, int roomNumber, String date, String timeSlot) {
         if (!campusName.equals(this.serverName)) {
             UdpMessage reqMessage = new UdpMessage("bookRoom", studentID, campusName, Integer.toString(roomNumber), timeSlot, date , null);
-            return udpSend(reqMessage, CentralRepository.getUdpPortNum(campusName));
+            return udpSend(reqMessage, UDPUtils.getUdpPortNum(campusName));
         }
 
         RoomRecord rr = null;
@@ -307,7 +308,7 @@ public class CampusImpl implements CampusInterface {
             return "Could not change booking, unknown error!";
         } else {
             UdpMessage reqMessage = new UdpMessage("changeBooking", studentID, newCampusName, Integer.toString(newRoomNumber), newTimeSlot, null, bookingID);
-            return udpSend(reqMessage, CentralRepository.getUdpPortNum(newCampusName));
+            return udpSend(reqMessage, UDPUtils.getUdpPortNum(newCampusName));
         }
     }
 
@@ -319,7 +320,7 @@ public class CampusImpl implements CampusInterface {
         String[] serverList = {"DVL", "WST", "KKL"};
         for (String serverName : serverList) {
             if (!serverName.equals(this.serverName)) {
-                int serverPort = CentralRepository.getUdpPortNum(serverName);
+                int serverPort = UDPUtils.getUdpPortNum(serverName);
                 UdpMessage reqMessage = new UdpMessage("internalGet", null, null, null, "", date, null);
                 msg += udpSend(reqMessage, serverPort) + " ";
             }
