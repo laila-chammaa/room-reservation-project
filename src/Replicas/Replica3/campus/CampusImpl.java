@@ -22,8 +22,21 @@ public class CampusImpl implements CampusInterface {
     private HashMap<String, HashMap<Integer, HashMap<String, RoomRecord>>> roomRecords;
     TextLogger logger;
 
+//    public CampusImpl(String serverName) {
+//        this.serverName = serverName;
+//        roomRecords = new HashMap<>();
+//        logger = new TextLogger(this.serverName + "Server_log.txt");
+//        new Thread(() -> udpLoop()).start();
+//
+//        init();
+//    }
+
     public CampusImpl(String serverName) {
         this.serverName = serverName;
+    }
+
+    @Override
+    public void run() {
         roomRecords = new HashMap<>();
         logger = new TextLogger(this.serverName + "Server_log.txt");
         new Thread(() -> udpLoop()).start();
@@ -443,4 +456,5 @@ public class CampusImpl implements CampusInterface {
 
         return this.serverName + " " + count + " ";
     }
+
 }

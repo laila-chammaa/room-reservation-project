@@ -22,7 +22,7 @@ public class MockUdpMessage {
             String[] timeSlots = {"17:00-18:00", "18:00-19:00", "19:00-20:00", "20:00-21:00"};
 
             UdpMessage myMessage = new UdpMessage(
-                    "createRoom", "DVLA1111", "DVL", "101", timeSlots, "01-11-2021", null);
+                    "createRoom", "KKLS1111", null, "101", timeSlots, "01-11-2021", null);
 
             ByteArrayOutputStream bStream = new ByteArrayOutputStream();
             ObjectOutput oo = new ObjectOutputStream(bStream);

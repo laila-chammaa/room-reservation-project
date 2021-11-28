@@ -1,6 +1,6 @@
 package Replicas.Replica3.campus;
 
-public interface CampusInterface {
+public interface CampusInterface extends Runnable {
     String createRoom(String adminID, int roomNumber, String date, String[] timeSlots);
     String deleteRoom(String adminID, int roomNumber, String date, String[] timeSlots);
 
