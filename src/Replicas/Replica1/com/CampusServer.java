@@ -9,13 +9,10 @@ import Replicas.Replica1.udp.UDPServer;
 
 import javax.jws.WebService;
 import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.FileHandler;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
@@ -29,8 +26,6 @@ public class CampusServer implements CampusServerInterface {
 
     //Variable for each separate bank server
     private String campusID;
-
-    private final AtomicBoolean listeningForRequests = new AtomicBoolean(true);
 
     private static ArrayList<HashMap<String, Integer>> stuBkngCntMap;
 
@@ -49,9 +44,6 @@ public class CampusServer implements CampusServerInterface {
 
     //Holds other servers' addresses : ["ServerName", "hostName:portNumber"]
     HashMap<String, String> serversList;
-
-    private static final Object bookRoomRequestLock = new Object();
-    private static final Object cancelBookingRequestLock = new Object();
 
     public CampusServer() {
         this.campusID = "DVL"; //default value
@@ -593,48 +585,5 @@ public class CampusServer implements CampusServerInterface {
 
     public String getCampusID() {
         return this.campusID;
-    }
-
-    @Override
-    public void run() {
-        try (DatagramSocket socket = new DatagramSocket(UDPPort)) {
-            //TODO: create a shutdown func to set this to false?
-            while (listeningForRequests.get()) {
-                byte[] receivedBytes = new byte[128];
-                DatagramPacket request = new DatagramPacket(receivedBytes, receivedBytes.length);
-                socket.receive(request);
-
-                String data = new String(receivedBytes);
-
-                String replyMessage;
-
-                //TODO: other requests?
-                if (data.startsWith("getAvailableTimeSlot:")) {
-                    String dateString = data.split("getAvailableTimeSlot:")[1].trim();
-                    replyMessage = this.getAvailableTimeSlot(dateString);
-                } else if (data.startsWith("bookRoom:")) {
-                    synchronized (bookRoomRequestLock) {
-                        String[] params = data.split("bookRoom:")[1].trim().split(";");
-                        String userId = params[0];
-                        String roomNumber = params[1];
-                        String date = params[2];
-                        String timeSlot = params[3];
-                        replyMessage = this.bookRoom(userId, this.campusID, Integer.parseInt(roomNumber), date, timeSlot);
-                    }
-                } else if (data.startsWith("cancelBooking:")) {
-                    synchronized (cancelBookingRequestLock) {
-                        String[] params = data.split("cancelBooking:")[1].trim().split(";");
-                        replyMessage = this.cancelBooking(params[0], params[1]);
-                    }
-                } else {
-                    replyMessage = "Error: invalid request";
-                }
-
-                DatagramPacket reply = new DatagramPacket(replyMessage.getBytes(), replyMessage.getBytes().length, request.getAddress(), request.getPort());
-                socket.send(reply);
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
     }
 }
