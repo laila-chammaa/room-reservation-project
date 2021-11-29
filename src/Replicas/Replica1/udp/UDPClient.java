@@ -1,7 +1,5 @@
 package Replicas.Replica1.udp;
 
-import Replicas.Replica1.model.CampusID;
-
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -17,10 +15,10 @@ public class UDPClient {
     private CampusUDPInterface request;
     private CampusUDPInterface response;
 
-    private CampusID campusID;
+    private String campusID;
     Logger logger;
 
-    public UDPClient(String hostName, int portNum, CampusID campusID) {
+    public UDPClient(String hostName, int portNum, String campusID) {
         this.UDPHost = hostName;
         this.UDPPort = portNum;
         this.campusID = campusID;
