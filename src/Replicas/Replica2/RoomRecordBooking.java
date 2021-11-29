@@ -1,6 +1,7 @@
 package Replicas.Replica2;
 
 import java.io.Serializable;
+import java.text.MessageFormat;
 import java.util.UUID;
 
 /**
@@ -21,15 +22,9 @@ public class RoomRecordBooking implements Serializable {
 		this.bookingId = bookingId;
 	}
 	
-	public String book(String bookedBy, String campus) {
+	public String book(String bookedBy, String campus, int roomNb, String date, String timeSlot) {
 		this.bookedBy = bookedBy;
-		this.bookingId = campus + "-" + UUID.randomUUID().toString();
-		return this.bookingId;
-	}
-
-	public String bookWithId(String bookedBy, String bookingId) {
-		this.bookedBy = bookedBy;
-		this.bookingId = bookingId;
+		this.bookingId =  MessageFormat.format("{0}-{1}-{2}-{3}-{4}", bookedBy, campus, roomNb, date, timeSlot);
 		return this.bookingId;
 	}
 	

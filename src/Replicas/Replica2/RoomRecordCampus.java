@@ -189,7 +189,7 @@ public class RoomRecordCampus implements CampusServerInterface, Runnable {
 			return message;
 		}
 
-		String bookingId = booking.book(userId, campusName);
+		String bookingId = booking.book(userId, campusName, roomNumber, date, timeSlot);
 		if (campusName.equals(userId.substring(0,3))) {
 			addStudentBookingCount(userId);
 		}
