@@ -1,28 +1,17 @@
 package Replicas.Replica1.model;
 
 import java.util.Objects;
-import java.util.UUID;
 
 public class Booking {
     private String recordID;
     private String bookedBy; //studentID if it’s booked by student, null otherwise
     private String bookingID;
-    private Timeslot timeslot;
+    private String timeslot;
 
-    public Booking(String recordID, String bookedBy, Timeslot timeslot) {
+    public Booking(String recordID, String bookedBy, String timeslot) {
         this.recordID = recordID;
         this.bookedBy = bookedBy;
         this.timeslot = timeslot;
-        if (bookedBy != null) {
-            this.bookingID = UUID.randomUUID().toString();
-        }
-    }
-
-    public void book(String bookedBy) {
-        if (bookedBy != null) {
-            this.bookedBy = bookedBy;
-            this.bookingID = UUID.randomUUID().toString();
-        }
     }
 
     public String getRecordID() {
@@ -49,11 +38,11 @@ public class Booking {
         this.bookingID = bookingID;
     }
 
-    public Timeslot getTimeslot() {
+    public String getTimeslot() {
         return timeslot;
     }
 
-    public void setTimeslot(Timeslot timeslot) {
+    public void setTimeslot(String timeslot) {
         this.timeslot = timeslot;
     }
 
