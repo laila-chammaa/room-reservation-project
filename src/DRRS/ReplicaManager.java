@@ -56,10 +56,12 @@ public class ReplicaManager {
 	class ReplicaThread implements Runnable {
 		@Override
 		public void run() {
-			synchronized(queueLock) {
-				JSONObject currentRequest = requestQueue.poll();
-				if (currentRequest != null) {
-					replica.executeRequest(currentRequest);
+			while (true) {
+				synchronized(queueLock) {
+					JSONObject currentRequest = requestQueue.poll();
+					if (currentRequest != null) {
+						replica.executeRequest(currentRequest);
+					}
 				}
 			}
 		}
