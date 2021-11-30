@@ -1,24 +1,39 @@
 package DRRS;
 
-import Replicas.CampusServerInterface;
+import DRRS.config.ReplicaPorts;
+import org.json.simple.JSONObject;
 
-public class Replica {
+public abstract class Replica {
 	
-	private Thread dvlThread;
-	private Thread kklThread;
-	private Thread wstThread;
+	// Should be set on construction
+	protected ReplicaPorts ports;
 	
-	Replica(CampusServerInterface dvlCampus, CampusServerInterface kklCampus, CampusServerInterface wstCampus) {
-		this.dvlThread = new Thread(dvlCampus);
-		this.kklThread = new Thread(kklCampus);
-		this.wstThread = new Thread(wstCampus);
-	}
+	/**
+	 * Starts server threads
+	 */
+	abstract void startServers();
 	
-	public void reset() {
+	/**
+	 * Stops server threads and frees their resources
+	 */
+	abstract void stopServers();
 	
-	}
+	/**
+	 * Get the replica's current data for all servers
+	 * @return {String}
+	 */
+	abstract JSONObject getCurrentData();
 	
-	private void getCurrentValidData() {
-		// Reaching to the other replicas to get their data
+	/**
+	 * Set the replica's current data for all servers
+	 */
+	public abstract void setCurrentData(JSONObject currentData);
+	
+	/**
+	 * Executes the request
+	 * @param request
+	 */
+	public void executeRequest(String request) {
+	
 	}
 }

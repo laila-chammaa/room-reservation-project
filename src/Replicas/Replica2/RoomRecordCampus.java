@@ -12,6 +12,8 @@ import java.util.stream.Collectors;
 
 public class RoomRecordCampus implements CampusServerInterface, Runnable {
 	private static final Object removeBookingLock = new Object();
+	private static final Object createRoomRequestLock = new Object();
+	private static final Object deleteRoomRequestLock = new Object();
 	private static final Object bookRoomRequestLock = new Object();
 	private static final Object cancelBookingRequestLock = new Object();
 	private static final Object reduceStudentCountRequestLock = new Object();
@@ -429,6 +431,24 @@ public class RoomRecordCampus implements CampusServerInterface, Runnable {
 				if (data.startsWith("getAvailableTimeSlot:")) {
 					String dateString = data.split("getAvailableTimeSlot:")[1].trim();
 					replyMessage = this.getCountFromDate(dateString);
+				} else if (data.startsWith("createRoom:")) {
+					synchronized(createRoomRequestLock) {
+						String[] params = data.split("createRoom:")[1].trim().split(";");
+						String userId = params[0];
+						String roomNumber = params[1];
+						String date = params[2];
+						String timeSlots = params[3];
+						replyMessage = this.createRoom(userId, Integer.parseInt(roomNumber), date, timeSlots.split(","));
+					}
+				} else if (data.startsWith("deleteRoom:")) {
+					synchronized(deleteRoomRequestLock) {
+						String[] params = data.split("deleteRoom:")[1].trim().split(";");
+						String userId = params[0];
+						String roomNumber = params[1];
+						String date = params[2];
+						String timeSlots = params[3];
+						replyMessage = this.deleteRoom(userId, Integer.parseInt(roomNumber), date, timeSlots.split(","));
+					}
 				} else if (data.startsWith("bookRoom:")) {
 					synchronized(bookRoomRequestLock) {
 						String[] params = data.split("bookRoom:")[1].trim().split(";");

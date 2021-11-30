@@ -1,16 +1,18 @@
 package DRRS.config;
 
-public class ReplicaManagerPorts {
+public class ReplicaPorts {
 	private final int rmPort;
 	private final int dvlPort;
 	private final int kklPort;
 	private final int wstPort;
+	private final String ipAddress;
 	
-	public ReplicaManagerPorts(int rmPort, int dvlPort, int kklPort, int wstPort) {
+	public ReplicaPorts(int rmPort, int dvlPort, int kklPort, int wstPort, String ipAddress) {
 		this.rmPort = rmPort;
 		this.dvlPort = dvlPort;
 		this.kklPort = kklPort;
 		this.wstPort = wstPort;
+		this.ipAddress = ipAddress;
 	}
 	
 	public int getRmPort() {
@@ -27,5 +29,9 @@ public class ReplicaManagerPorts {
 	
 	public int getWstPort() {
 		return wstPort;
+	}
+	
+	public String getRmIpAddress() {
+		return ipAddress;
 	}
 }
