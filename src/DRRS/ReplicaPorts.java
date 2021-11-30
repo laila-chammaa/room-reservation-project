@@ -1,4 +1,4 @@
-package DRRS.config;
+package DRRS;
 
 public class ReplicaPorts {
 	private final int rmPort;

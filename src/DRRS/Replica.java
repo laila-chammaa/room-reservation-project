@@ -1,39 +1,33 @@
 package DRRS;
 
-import DRRS.config.ReplicaPorts;
 import org.json.simple.JSONObject;
 
-public abstract class Replica {
-	
-	// Should be set on construction
-	protected ReplicaPorts ports;
+public interface Replica {
 	
 	/**
 	 * Starts server threads
 	 */
-	abstract void startServers();
+	void startServers();
 	
 	/**
 	 * Stops server threads and frees their resources
 	 */
-	abstract void stopServers();
+	void stopServers();
 	
 	/**
 	 * Get the replica's current data for all servers
 	 * @return {String}
 	 */
-	abstract JSONObject getCurrentData();
+	JSONObject getCurrentData();
 	
 	/**
 	 * Set the replica's current data for all servers
 	 */
-	public abstract void setCurrentData(JSONObject currentData);
+	void setCurrentData(JSONObject currentData);
 	
 	/**
-	 * Executes the request
+	 * Executes the request by delegating to its servers
 	 * @param request
 	 */
-	public void executeRequest(String request) {
-	
-	}
+	void executeRequest(JSONObject request);
 }

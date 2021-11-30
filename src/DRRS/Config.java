@@ -1,37 +1,22 @@
 package DRRS;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class Config {
-
-    public static class Replica1 {
-        public static final int RM_PORT = 9000;
-        public static final int RE_PORT = 9100;
-        public static final int DVL_PORT = 5000;
-        public static final int KKL_PORT = 5001;
-        public static final int WST_PORT = 5002;
-    }
-
-    public static class Replica2 {
-        public static final int RM_PORT = 9001;
-        public static final int RE_PORT = 9101;
-        public static final int DVL_PORT = 6000;
-        public static final int KKL_PORT = 6001;
-        public static final int WST_PORT = 6002;
-    }
-
-    public static class Replica3 {
-        public static final int RM_PORT = 9002;
-        public static final int RE_PORT = 9102;
-        public static final int DVL_PORT = 7000;
-        public static final int KKL_PORT = 7001;
-        public static final int WST_PORT = 7002;
-    }
-
-    public static class Replica4 {
-        public static final int RM_PORT = 9003;
-        public static final int RE_PORT = 9103;
-        public static final int DVL_PORT = 8000;
-        public static final int KKL_PORT = 8001;
-        public static final int WST_PORT = 8002;
+    
+    public static class Ports {
+        
+        private static final ReplicaPorts ReplicaManager1 = new ReplicaPorts(4001, 5001, 5002, 5003, IPAddresses.REPLICA1);
+        private static final ReplicaPorts ReplicaManager2 = new ReplicaPorts(4002, 5004, 5005, 5006, IPAddresses.REPLICA2);
+        private static final ReplicaPorts ReplicaManager3 = new ReplicaPorts(4003, 5007, 5008, 5009, IPAddresses.REPLICA3);
+        private static final ReplicaPorts ReplicaManager4 = new ReplicaPorts(4004, 5010, 5011, 5012, IPAddresses.REPLICA4);
+        
+        public static final Map<Integer, ReplicaPorts> REPLICA_MANAGER_PORTS_MAP = new HashMap<>() {{
+            put(1, ReplicaManager1); put(2, ReplicaManager2); put(3, ReplicaManager3); put(4, ReplicaManager4);
+        }};
+        
+        // TODO: Define frontend/sequencer port numbers
     }
 
     public static class PortNumbers

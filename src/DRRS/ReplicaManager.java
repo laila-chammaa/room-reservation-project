@@ -1,7 +1,6 @@
 package DRRS;
 
-import DRRS.config.Config;
-import DRRS.config.ReplicaPorts;
+import Frontend.Message;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
@@ -17,13 +16,14 @@ import java.util.concurrent.LinkedBlockingQueue;
 public class ReplicaManager {
 	private static final int MAX_FAILURE_COUNT = 3;
 	private int failureCount;
-	private Queue<JSONObject> requestQueue;
+	private final Queue<JSONObject> requestQueue;
 	private final Replica replica;
 	private final ReplicaPorts replicaManagerPorts;
 	private final Object queueLock;
-	private Thread managerThread;
+	private final Thread managerThread;
+	private final Thread replicaThread;
 	private InetAddress managerAddress;
-	private JSONParser parser = new JSONParser();
+	private final JSONParser parser = new JSONParser();
 	
 	public ReplicaManager(int replicaNumber, Replica replica) throws UnknownHostException {
 		this.replicaManagerPorts = Config.Ports.REPLICA_MANAGER_PORTS_MAP.get(replicaNumber);
@@ -31,6 +31,7 @@ public class ReplicaManager {
 		
 		this.replica = replica;
 		managerThread = new Thread(new ManagerThread());
+		replicaThread = new Thread(new ReplicaThread());
 		this.requestQueue = new LinkedBlockingQueue<>();
 		this.queueLock = new Object();
 	}
@@ -39,22 +40,36 @@ public class ReplicaManager {
 		@Override
 		public void run() {
 			try (DatagramSocket socket = new DatagramSocket(replicaManagerPorts.getRmPort())) {
+				socket.setSoTimeout(1000);
 				while(true) {
 					byte[] receivedBytes = new byte[1024];
 					DatagramPacket receivedPacket = new DatagramPacket(receivedBytes, receivedBytes.length);
 					socket.receive(receivedPacket);
 					process(socket, receivedPacket);
 				}
-			} catch(IOException e) {
+			} catch(IOException | ParseException e) {
 				e.printStackTrace();
 			}
 		}
 	}
 	
+	class ReplicaThread implements Runnable {
+		@Override
+		public void run() {
+			synchronized(queueLock) {
+				JSONObject currentRequest = requestQueue.poll();
+				if (currentRequest != null) {
+					replica.executeRequest(currentRequest);
+				}
+			}
+		}
+	}
+	
 	public void process(DatagramSocket socket, DatagramPacket request) throws ParseException {
-		JSONObject message = (JSONObject) parser.parse(new String(request.getData()).trim());
+		JSONObject requestData = (JSONObject) parser.parse(new String(request.getData()).trim());
+		String command = requestData.get(MessageKeys.COMMAND_TYPE).toString();
 		
-		if (message.equals("getData")) {
+		if (command.equals(Config.GET_DATA)) {
 			try {
 				JSONObject data = replica.getCurrentData();
 				byte[] dataSent = data.toString().getBytes();
@@ -65,42 +80,39 @@ public class ReplicaManager {
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
-		} else if (message.get("failure")) {
+		} else if (command.equals(Config.REPORT_FAILURE)) {
 			try {
-				String errorType = message.split("failure:")[1];
+				String errorType = requestData.get(MessageKeys.FAILURE_TYPE).toString();
 				boolean isCrashRequest = false;
-				if (errorType.equals("byzantine")) {
+				if (errorType.equals(Config.Failure.BYZANTINE.toString())) {
 					failureCount += 1;
-				} else if (errorType.equals("crash")) {
+				} else if (errorType.equals(Config.Failure.PROCESS_CRASH.toString())) {
 					isCrashRequest = true;
-				} else {
-					synchronized(queueLock) {
-						requestQueue.add(message);
-					}
 				}
 				
 				if (isCrashRequest || failureCount >= MAX_FAILURE_COUNT) {
-					resetReplica();
-				} else {
 					synchronized(queueLock) {
-						String currentRequest = requestQueue.poll();
-						if (currentRequest != null) {
-							replica.executeRequest(currentRequest);
-						}
+						resetReplica();
 					}
 				}
 			} catch (Exception e) {
 				e.printStackTrace();
+			}
+		} else {
+			synchronized(queueLock) {
+				requestQueue.add(requestData);
 			}
 		}
 	}
 	
 	public void start() {
 		this.managerThread.start();
+		this.replicaThread.start();
 	}
 	
 	public void stop() throws InterruptedException {
 		this.managerThread.join();
+		this.replicaThread.join();
 	}
 	
 	public void resetReplica() {
