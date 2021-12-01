@@ -26,7 +26,7 @@ public class RoomRecordCampus implements CampusServerInterface, Runnable {
 	
 	private ServerLogger logger;
 	
-	public void init(String campus, int socketPort, HashMap<String, Integer> otherSocketPorts) throws IOException {
+	public RoomRecordCampus(String campus, int socketPort, HashMap<String, Integer> otherSocketPorts) throws IOException {
 		this.campus = campus;
 		this.socketPort = socketPort;
 		this.otherSocketPorts = otherSocketPorts;
@@ -113,12 +113,11 @@ public class RoomRecordCampus implements CampusServerInterface, Runnable {
 			for (RoomRecordBooking removedBooking : removedBookings) {
 				bookings.remove(removedBooking);
 				if (removedBooking.bookedBy != null) {
-					String campus = removedBooking.bookedBy.substring(0,3);
 					if (removedBooking.bookedBy.startsWith(this.campus)) {
 						reduceStudentBookingCount(removedBooking.bookedBy);
 					} else {
 						try {
-							int port = this.otherSocketPorts.get(campus);
+							int port = this.otherSocketPorts.get(removedBooking.bookedBy.substring(0,3));
 							requestReduceStudentBookingCount(port, removedBooking.bookedBy);
 						} catch(Exception e) {
 							message = "Failure: " + e.getMessage();

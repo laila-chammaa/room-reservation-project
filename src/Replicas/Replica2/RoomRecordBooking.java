@@ -2,7 +2,6 @@ package Replicas.Replica2;
 
 import java.io.Serializable;
 import java.text.MessageFormat;
-import java.util.UUID;
 
 /**
  * Room Record object

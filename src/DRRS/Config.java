@@ -15,8 +15,6 @@ public class Config {
         public static final Map<Integer, ReplicaPorts> REPLICA_MANAGER_PORTS_MAP = new HashMap<>() {{
             put(1, ReplicaManager1); put(2, ReplicaManager2); put(3, ReplicaManager3); put(4, ReplicaManager4);
         }};
-        
-        // TODO: Define frontend/sequencer port numbers
     }
 
     public static class PortNumbers
