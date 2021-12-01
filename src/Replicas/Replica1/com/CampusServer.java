@@ -1,11 +1,14 @@
 package Replicas.Replica1.com;
 
+import DRRS.MessageKeys;
 import Replicas.CampusServerInterface;
 import Replicas.Replica1.model.Booking;
 import Replicas.Replica1.udp.CampusUDP;
 import Replicas.Replica1.udp.CampusUDPInterface;
 import Replicas.Replica1.udp.UDPClient;
 import Replicas.Replica1.udp.UDPServer;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
 
 import javax.jws.WebService;
 import java.io.IOException;
@@ -68,9 +71,9 @@ public class CampusServer implements CampusServerInterface {
         this.logger.info("Server: " + campusID + " port is : " + UDPPort);
     }
 
-    public CampusServer(String campusID, String host, int port, HashMap<String, String> serversList) {
+    public CampusServer(String campusID, int port, HashMap<String, String> serversList) {
         this.campusID = campusID;
-        this.UDPHost = host;
+        this.UDPHost = "localhost";
         this.UDPPort = port;
         this.serversList = serversList;
 
@@ -585,5 +588,30 @@ public class CampusServer implements CampusServerInterface {
 
     public String getCampusID() {
         return this.campusID;
+    }
+
+    @Override
+    public JSONArray getRecords() {
+        JSONArray jsonRecords = new JSONArray();
+
+        for (Map.Entry<String, Map.Entry<String, Integer>> record : roomRecords.entrySet()) {
+            JSONObject jsonRecord = new JSONObject();
+            List<Booking> bookings = bookingRecords.get(record.getKey());
+
+            jsonRecord.put(MessageKeys.DATE, record.getValue().getKey());
+            jsonRecord.put(MessageKeys.ROOM_NUM, record.getValue().getValue());
+            for (Booking booking : bookings) {
+                jsonRecord.put(MessageKeys.TIMESLOT, booking.getTimeslot());
+                jsonRecord.put(MessageKeys.BOOKING_ID, booking.getBookingID());
+                jsonRecord.put(MessageKeys.STUDENT_ID, booking.getBookedBy());
+            }
+            jsonRecords.add(jsonRecord);
+        }
+        return jsonRecords;
+    }
+
+    @Override
+    public void setRecords(JSONArray records) {
+        //TODO
     }
 }

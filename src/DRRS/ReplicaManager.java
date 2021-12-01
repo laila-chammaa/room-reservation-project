@@ -1,13 +1,14 @@
 package DRRS;
 
-import Frontend.Message;
-import Frontend.ReturnMessage;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
 import java.io.IOException;
-import java.net.*;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.Queue;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -60,8 +61,9 @@ public class ReplicaManager {
 					if (currentRequest != null) {
 						String message = replica.executeRequest(currentRequest);
 						Config.StatusCode statusCode = Config.StatusCode.SUCCESS;
-						
-						if (message.contains("INVALID") || message.contains("Failure")) {
+
+						if (message.contains("INVALID") || message.contains("Failure") ||
+								message.contains("Error")) {
 							statusCode = Config.StatusCode.FAIL;
 						}
 						
