@@ -55,6 +55,8 @@ public class ReplicaManager {
 	class ReplicaThread implements Runnable {
 		@Override
 		public void run() {
+			replica.startServers();
+			
 			while (true) {
 				synchronized(queueLock) {
 					JSONObject currentRequest = requestQueue.poll();
@@ -134,9 +136,10 @@ public class ReplicaManager {
 	public void stop() throws InterruptedException {
 		this.managerThread.join();
 		this.replicaThread.join();
+		this.replica.stopServers();
 	}
 	
-	public void resetReplica() {
+	public void resetReplica() throws InterruptedException {
 		// TODO: get data from other replicas and pass to reset
 		JSONObject currentData = new JSONObject();
 		this.replica.stopServers();

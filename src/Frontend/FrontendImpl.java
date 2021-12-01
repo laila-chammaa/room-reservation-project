@@ -79,7 +79,7 @@ public class FrontendImpl implements FrontendInterface {
         payload.put(MessageKeys.ADMIN_ID, adminID);
         payload.put(MessageKeys.ROOM_NUM, roomNumber);
         payload.put(MessageKeys.DATE, date);
-        payload.put(MessageKeys.TIMESLOT, listOfTimeSlots);
+        payload.put(MessageKeys.TIMESLOTS, listOfTimeSlots);
 
         try {
             message = createMessage(payload);
@@ -100,7 +100,7 @@ public class FrontendImpl implements FrontendInterface {
         payload.put(MessageKeys.ADMIN_ID, adminID);
         payload.put(MessageKeys.ROOM_NUM, roomNumber);
         payload.put(MessageKeys.DATE, date);
-        payload.put(MessageKeys.TIMESLOT, listOfTimeSlots);
+        payload.put(MessageKeys.TIMESLOTS, listOfTimeSlots);
 
         try {
             message = createMessage(payload);
