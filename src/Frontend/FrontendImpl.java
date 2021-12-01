@@ -435,8 +435,10 @@ public class FrontendImpl implements FrontendInterface {
 
                         receiveFromReplica.release();
                         System.out.println("Received response from Replica on port " + port + " for message ID: " + jsonMessage.get(MessageKeys.MESSAGE_ID).toString() + " Semaphore: " + receiveFromReplica.availablePermits());
-                    } catch (ParseException | IOException e) {
+                    } catch (ParseException e) {
                         e.printStackTrace();
+                    } catch (IOException e) {
+
                     }
                 }
             } catch (SocketException e1) {
