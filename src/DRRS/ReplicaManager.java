@@ -1,15 +1,13 @@
 package DRRS;
 
 import Frontend.Message;
+import Frontend.ReturnMessage;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
 import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
+import java.net.*;
 import java.util.Queue;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -60,7 +58,26 @@ public class ReplicaManager {
 				synchronized(queueLock) {
 					JSONObject currentRequest = requestQueue.poll();
 					if (currentRequest != null) {
-						replica.executeRequest(currentRequest);
+						String message = replica.executeRequest(currentRequest);
+						Config.StatusCode statusCode = Config.StatusCode.SUCCESS;
+						
+						if (message.contains("INVALID") || message.contains("Failure")) {
+							statusCode = Config.StatusCode.FAIL;
+						}
+						
+						JSONObject returnObject = new JSONObject();
+						returnObject.put(MessageKeys.RM_PORT_NUMBER, replicaManagerPorts.getRmPort());
+						returnObject.put(MessageKeys.STATUS_CODE, statusCode.toString());
+						returnObject.put(MessageKeys.MESSAGE, message);
+						
+						// TODO: use sequence from sequencer
+						
+						try (DatagramSocket socket = new DatagramSocket()) {
+							byte[] dataSent = returnObject.toJSONString().getBytes();
+							socket.send(new DatagramPacket(dataSent, dataSent.length,  InetAddress.getByName(Config.IPAddresses.FRONT_END), Config.PortNumbers.RE_FE));
+						} catch(IOException e) {
+							e.printStackTrace();
+						}
 					}
 				}
 			}

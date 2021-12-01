@@ -5,15 +5,12 @@ import DRRS.Replica;
 import DRRS.ReplicaPorts;
 import org.json.simple.JSONObject;
 
-public class Replica2 implements Replica {
+public class Replica2 extends Replica {
 	
-	RoomRecordCampus dvlCampus;
-	RoomRecordCampus kklCampus;
-	RoomRecordCampus wstCampus;
+	private static final ReplicaPorts ports = Config.Ports.REPLICA_MANAGER_PORTS_MAP.get(2);
 	
 	public Replica2() {
-		ReplicaPorts ports = Config.Ports.REPLICA_MANAGER_PORTS_MAP.get(2);
-		dvlCampus = new RoomRecordCampus("DVL", ports.getDvlPort());
+		super(new RoomRecordCampus("DVL", ports.getDvlPort()));
 	}
 	
 	@Override
@@ -33,11 +30,6 @@ public class Replica2 implements Replica {
 	
 	@Override
 	public void setCurrentData(JSONObject currentData) {
-	
-	}
-	
-	@Override
-	public void executeRequest(JSONObject request) {
 	
 	}
 }

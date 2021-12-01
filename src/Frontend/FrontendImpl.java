@@ -179,13 +179,14 @@ public class FrontendImpl implements FrontendInterface {
     }
 
     @Override
-    public String getAvailableTimeSlot(String date) {
+    public String getAvailableTimeSlot(String studentId, String date) {
         this.logger.info(String.format("Server Log | Request: getAvailableTimeSlot | Date: %s", date));
 
         JSONObject payload = new JSONObject();
         Message message = null;
 
         payload.put(MessageKeys.COMMAND_TYPE, Config.GET_TIMESLOTS);
+        payload.put(MessageKeys.STUDENT_ID, studentId);
         payload.put(MessageKeys.DATE, date);
 
         try {
@@ -381,14 +382,15 @@ public class FrontendImpl implements FrontendInterface {
         }
 
         private String getIPFromPort(int port) {
+            
             switch (port) {
-                case Config.Replica1.RM_PORT:
+                case Config.Ports.REPLICA_PORT_1:
                     return Config.IPAddresses.REPLICA1;
-                case Config.Replica2.RM_PORT:
+                case Config.Ports.REPLICA_PORT_2:
                     return Config.IPAddresses.REPLICA2;
-                case Config.Replica3.RM_PORT:
+                case Config.Ports.REPLICA_PORT_3:
                     return Config.IPAddresses.REPLICA3;
-                case Config.Replica4.RM_PORT:
+                case Config.Ports.REPLICA_PORT_4:
                     return Config.IPAddresses.REPLICA4;
             }
 
@@ -472,20 +474,20 @@ public class FrontendImpl implements FrontendInterface {
 
             System.out.println("Keys: " + message.getReturnTimes().keySet().toString());
 
-            if (!message.getReturnTimes().containsKey(Config.Replica1.RM_PORT)) {
-                notifyReplicaOfProcessCrash(Config.Replica1.RM_PORT);
+            if (!message.getReturnTimes().containsKey(Config.Ports.REPLICA_PORT_1)) {
+                notifyReplicaOfProcessCrash(Config.Ports.REPLICA_PORT_1);
             }
 
-            if (!message.getReturnTimes().containsKey(Config.Replica2.RM_PORT)) {
-                notifyReplicaOfProcessCrash(Config.Replica2.RM_PORT);
+            if (!message.getReturnTimes().containsKey(Config.Ports.REPLICA_PORT_2)) {
+                notifyReplicaOfProcessCrash(Config.Ports.REPLICA_PORT_2);
             }
 
-            if (!message.getReturnTimes().containsKey(Config.Replica3.RM_PORT)) {
-                notifyReplicaOfProcessCrash(Config.Replica3.RM_PORT);
+            if (!message.getReturnTimes().containsKey(Config.Ports.REPLICA_PORT_3)) {
+                notifyReplicaOfProcessCrash(Config.Ports.REPLICA_PORT_3);
             }
 
-            if (!message.getReturnTimes().containsKey(Config.Replica4.RM_PORT)) {
-                notifyReplicaOfProcessCrash(Config.Replica4.RM_PORT);
+            if (!message.getReturnTimes().containsKey(Config.Ports.REPLICA_PORT_4)) {
+                notifyReplicaOfProcessCrash(Config.Ports.REPLICA_PORT_4);
             }
         }
     }
@@ -522,7 +524,7 @@ public class FrontendImpl implements FrontendInterface {
     private void notifyReplicaOfProcessCrash(int port) {
         DatagramSocket socket = null;
         JSONObject payload = new JSONObject();
-        int[] ports = new int[]{Config.Replica1.RM_PORT, Config.Replica2.RM_PORT, Config.Replica3.RM_PORT};
+        int[] ports = new int[]{Config.Ports.REPLICA_PORT_1, Config.Ports.REPLICA_PORT_2, Config.Ports.REPLICA_PORT_3};
         String[] hosts = new String[]{Config.IPAddresses.REPLICA1, Config.IPAddresses.REPLICA2, Config.IPAddresses.REPLICA3};
 
         payload.put(MessageKeys.COMMAND_TYPE, Config.REPORT_FAILURE);

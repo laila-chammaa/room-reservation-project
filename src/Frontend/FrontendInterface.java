@@ -12,7 +12,7 @@ public interface FrontendInterface {
 
     //STUDENT ONLY
     String bookRoom(String studentID, String campusID, int roomNumber, String date, String timeSlot);
-    String getAvailableTimeSlot(String date);
+    String getAvailableTimeSlot(String studentId, String date);
     String cancelBooking(String studentID, String bookingID);
     String changeReservation(String studentID, String bookingId, String newCampusName, int newRoomNo, String newTimeSlot);
 

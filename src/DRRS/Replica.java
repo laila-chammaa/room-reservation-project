@@ -53,15 +53,53 @@ public abstract class Replica {
 	public String executeRequest(JSONObject request) {
 		String command = request.get(MessageKeys.COMMAND_TYPE).toString();
 		String campusName = request.get(MessageKeys.CAMPUS).toString();
+		int roomNumber;
+		String adminId;
+		String studentId;
+		String date;
+		String timeSlot;
+		String timeSlots;
+		String bookingId;
 		
-		CampusServerInterface selectedCampus = selectCampus(campusName);
-		switch(command) {
-			case Config.BOOK_ROOM:
-				String studentId = request.get(MessageKeys.STUDENT_ID).toString();
-				int roomNumber = Integer.parseInt(request.get(MessageKeys.ROOM_NUM).toString());
-				String date = request.get(MessageKeys.DATE).toString();
-				String timeSlot = request.get(MessageKeys.TIMESLOT).toString();
-				return selectedCampus.bookRoom(studentId, campusName, roomNumber, date, timeSlot);
+		try {
+			switch(command) {
+				case Config.CREATE_ROOM:
+					adminId = request.get(MessageKeys.ADMIN_ID).toString();
+					roomNumber = Integer.parseInt(request.get(MessageKeys.ROOM_NUM).toString());
+					date = request.get(MessageKeys.DATE).toString();
+					timeSlots = request.get(MessageKeys.TIMESLOTS).toString();
+					return selectCampus(adminId.substring(0,3)).createRoom(adminId, roomNumber, date, timeSlots.split(","));
+				case Config.DELETE_ROOM:
+					adminId = request.get(MessageKeys.ADMIN_ID).toString();
+					roomNumber = Integer.parseInt(request.get(MessageKeys.ROOM_NUM).toString());
+					date = request.get(MessageKeys.DATE).toString();
+					timeSlots = request.get(MessageKeys.TIMESLOTS).toString();
+					return selectCampus(adminId.substring(0,3)).deleteRoom(adminId, roomNumber, date, timeSlots.split(","));
+				case Config.BOOK_ROOM:
+					studentId = request.get(MessageKeys.STUDENT_ID).toString();
+					roomNumber = Integer.parseInt(request.get(MessageKeys.ROOM_NUM).toString());
+					date = request.get(MessageKeys.DATE).toString();
+					timeSlot = request.get(MessageKeys.TIMESLOT).toString();
+					return selectCampus(studentId.substring(0,3)).bookRoom(studentId, campusName, roomNumber, date, timeSlot);
+				case Config.GET_TIMESLOTS:
+					studentId = request.get(MessageKeys.STUDENT_ID).toString();
+					date = request.get(MessageKeys.DATE).toString();
+					return selectCampus(studentId.substring(0,3)).getAvailableTimeSlot(date);
+				case Config.CANCEL_BOOKING:
+					studentId = request.get(MessageKeys.STUDENT_ID).toString();
+					bookingId = request.get(MessageKeys.BOOKING_ID).toString();
+					return selectCampus(studentId.substring(0,3)).cancelBooking(studentId, bookingId);
+				case Config.CHANGE_RESERVATION:
+					studentId = request.get(MessageKeys.STUDENT_ID).toString();
+					bookingId = request.get(MessageKeys.BOOKING_ID).toString();
+					roomNumber = Integer.parseInt(request.get(MessageKeys.ROOM_NUM).toString());
+					timeSlot = request.get(MessageKeys.TIMESLOT).toString();
+					return selectCampus(studentId.substring(0,3)).changeReservation(studentId, bookingId, campusName, roomNumber, timeSlot);
+				default:
+					return "INVALID_REQUEST";
+			}
+		} catch(Exception e) {
+			e.printStackTrace();
 		}
 		
 		return null;
