@@ -17,7 +17,7 @@ public interface FrontendInterface {
     @WebMethod
     String bookRoom(String studentID, String campusID, int roomNumber, String date, String timeSlot);
     @WebMethod
-    String getAvailableTimeSlot(String date);
+    String getAvailableTimeSlot(String studentId, String date);
     @WebMethod
     String cancelBooking(String studentID, String bookingID);
     @WebMethod
