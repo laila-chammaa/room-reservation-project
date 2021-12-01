@@ -50,6 +50,7 @@ public class Config {
         public static final String REPLICA4 = "132.205.64.144";
         public static final String SEQUENCER = "132.205.64.255";
         public static final String FRONT_END = "132.205.64.142";
+        public static final String MULTICAST_ADR = "239.1.2.3";
     }
 
     public enum StatusCode {
