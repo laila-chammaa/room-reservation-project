@@ -1,8 +1,9 @@
 package Replicas.Replica2;
 
 import Replicas.CampusServerInterface;
+import org.json.simple.JSONArray;
 
-import java.io.*;
+import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
@@ -613,5 +614,15 @@ public class RoomRecordCampus implements CampusServerInterface, Runnable {
 		}
 		
 		return this.campus + " " + nbSlots;
+	}
+
+	@Override
+	public JSONArray getRecords() {
+		return null;
+	}
+
+	@Override
+	public void setRecords(JSONArray records) {
+		//TODO
 	}
 }

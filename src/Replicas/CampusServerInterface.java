@@ -1,5 +1,7 @@
 package Replicas;
 
+import org.json.simple.JSONArray;
+
 public interface CampusServerInterface {
     //ADMIN ONLY
     String createRoom(String adminID, int roomNumber, String date, String[] listOfTimeSlots);
@@ -10,4 +12,7 @@ public interface CampusServerInterface {
     String getAvailableTimeSlot(String date);
     String cancelBooking(String studentID, String bookingID);
     String changeReservation(String studentID, String bookingId, String newCampusName, int newRoomNo, String newTimeSlot);
+
+    JSONArray getRecords();
+    void setRecords(JSONArray kklRecords);
 }
