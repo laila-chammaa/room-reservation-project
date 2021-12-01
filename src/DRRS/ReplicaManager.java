@@ -21,6 +21,7 @@ public class ReplicaManager {
 	private final Object queueLock;
 	private final Thread managerThread;
 	private final Thread replicaThread;
+	private int lastProcessedSequenceNumber = 0;
 	private InetAddress managerAddress;
 	private final JSONParser parser = new JSONParser();
 	
@@ -56,11 +57,21 @@ public class ReplicaManager {
 		@Override
 		public void run() {
 			replica.startServers();
-			
 			while (true) {
 				synchronized(queueLock) {
 					JSONObject currentRequest = requestQueue.poll();
 					if (currentRequest != null) {
+						int sequenceNumber = Integer.parseInt(currentRequest.get(MessageKeys.SEQ_NUM).toString());
+						
+						while (sequenceNumber <= lastProcessedSequenceNumber) {
+							currentRequest = requestQueue.remove();
+							sequenceNumber = Integer.parseInt(currentRequest.get(MessageKeys.SEQ_NUM).toString());
+							
+							System.out.println("\nSkipping already processed request" + sequenceNumber);
+						}
+						
+						lastProcessedSequenceNumber = sequenceNumber;
+						
 						String message = replica.executeRequest(currentRequest);
 						Config.StatusCode statusCode = Config.StatusCode.SUCCESS;
 
@@ -73,8 +84,6 @@ public class ReplicaManager {
 						returnObject.put(MessageKeys.RM_PORT_NUMBER, replicaManagerPorts.getRmPort());
 						returnObject.put(MessageKeys.STATUS_CODE, statusCode.toString());
 						returnObject.put(MessageKeys.MESSAGE, message);
-						
-						// TODO: use sequence from sequencer
 						
 						try (DatagramSocket socket = new DatagramSocket()) {
 							byte[] dataSent = returnObject.toJSONString().getBytes();

@@ -646,6 +646,7 @@ public class RoomRecordCampus implements CampusServerInterface, Runnable {
 
 	@Override
 	public void setRecords(JSONArray records) {
+		this.db = new ConcurrentHashMap<>();
 		for (JSONObject record : (ArrayList<JSONObject>) records) {
 			String date = record.get(MessageKeys.DATE).toString();
 			String timeslot = record.get(MessageKeys.TIMESLOT).toString();
