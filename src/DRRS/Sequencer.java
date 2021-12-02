@@ -53,7 +53,7 @@ public class Sequencer extends Thread{
         lastAckedSeqNums = new ConcurrentHashMap<>();
 
         running = false;
-        buf = new byte[10 << 2];
+        buf = new byte[2 << 10];
     }
 
     void listenForMessages() throws IOException {
