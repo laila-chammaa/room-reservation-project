@@ -25,10 +25,6 @@ public abstract class Replica {
 		this.kklCampus = kklCampus;
 		this.wstCampus = wstCampus;
 
-		dvlThread = new Thread((CampusImpl)dvlCampus);
-		kklThread = new Thread((CampusImpl)kklCampus);
-		wstThread = new Thread((CampusImpl)wstCampus);
-
 		this.campusMap = new HashMap<>();
 		this.campusMap.put("DVL", dvlCampus);
 		this.campusMap.put("KKL", kklCampus);
@@ -48,9 +44,9 @@ public abstract class Replica {
 	 * Stops server threads and frees their resources
 	 */
 	public void stopServers() throws InterruptedException {
-		dvlThread.join();
-		kklThread.join();
-		wstThread.join();
+		dvlThread.interrupt();
+		kklThread.interrupt();
+		wstThread.interrupt();
 	}
 
 	/**

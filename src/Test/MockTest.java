@@ -35,7 +35,6 @@ public class MockTest {
 
         try {
             rep3.stopServers();
-            rep3.startServers();
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
