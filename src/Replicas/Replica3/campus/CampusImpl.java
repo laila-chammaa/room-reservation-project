@@ -40,80 +40,16 @@ public class CampusImpl implements CampusServerInterface, Runnable {
 
     @Override
     public void run() {
-        try (DatagramSocket socket = new DatagramSocket(UDPPort)) {
-            while (true) {
-                byte[] receivedBytes = new byte[128];
-                DatagramPacket request = new DatagramPacket(receivedBytes, receivedBytes.length);
-                socket.receive(request);
-
-                String data = new String(receivedBytes);
-
-                String replyMessage;
-
-                if (data.startsWith("getAvailableTimeSlot:")) {
-                    String dateString = data.split("getAvailableTimeSlot:")[1].trim();
-                    replyMessage = this.getAvailableTimeSlot(dateString);
-                } else if (data.startsWith("createRoom:")) {
-                    synchronized (createRoomRequestLock) {
-                        String[] params = data.split("createRoom:")[1].trim().split(";");
-                        String userId = params[0];
-                        String roomNumber = params[1];
-                        String date = params[2];
-                        String timeSlots = params[3];
-                        replyMessage = this.createRoom(userId, Integer.parseInt(roomNumber), date, timeSlots.split(","));
-                    }
-                } else if (data.startsWith("changeReservation:")) {
-                    synchronized (bookRoomRequestLock) {
-                        String[] params = data.split("changeReservation:")[1].trim().split(";");
-                        String userId = params[0];
-                        String bookingID = params[1];
-                        String roomNumber = params[2];
-                        String newCampusName = params[3];
-                        String timeSlot = params[4];
-                        replyMessage = this.changeReservation(userId, bookingID, newCampusName,
-                                Integer.parseInt(roomNumber), timeSlot);
-                    }
-                } else if (data.startsWith("deleteRoom:")) {
-                    synchronized (deleteRoomRequestLock) {
-                        String[] params = data.split("deleteRoom:")[1].trim().split(";");
-                        String userId = params[0];
-                        String roomNumber = params[1];
-                        String date = params[2];
-                        String timeSlots = params[3];
-                        replyMessage = this.deleteRoom(userId, Integer.parseInt(roomNumber), date, timeSlots.split(","));
-                    }
-                } else if (data.startsWith("bookRoom:")) {
-                    synchronized (bookRoomRequestLock) {
-                        String[] params = data.split("bookRoom:")[1].trim().split(";");
-                        String userId = params[0];
-                        String roomNumber = params[1];
-                        String date = params[2];
-                        String timeSlot = params[3];
-                        replyMessage = this.bookRoom(userId, this.serverName, Integer.parseInt(roomNumber), date, timeSlot);
-                    }
-                } else if (data.startsWith("cancelBooking:")) {
-                    synchronized (cancelBookingRequestLock) {
-                        String[] params = data.split("cancelBooking:")[1].trim().split(";");
-                        replyMessage = this.cancelBooking(params[0], params[1]);
-                    }
-                } else {
-                    replyMessage = "Error: invalid request";
-                }
-
-                DatagramPacket reply = new DatagramPacket(replyMessage.getBytes(), replyMessage.getBytes().length, request.getAddress(), request.getPort());
-                socket.send(reply);
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        System.out.println("starting " + this.serverName);
+        udpLoop();
     }
 
-    private void udpLoop(int portNum) {
+    private void udpLoop() {
         DatagramSocket aSocket = null;
         String msg = "";
 
         try {
-            aSocket = new DatagramSocket(portNum);
+            aSocket = new DatagramSocket(this.UDPPort);
             byte[] buffer = new byte[4096];
 
             while (true) {

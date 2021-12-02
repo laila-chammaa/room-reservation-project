@@ -1,6 +1,7 @@
 package DRRS;
 
 import Replicas.CampusServerInterface;
+import Replicas.Replica3.campus.CampusImpl;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
@@ -15,10 +16,18 @@ public abstract class Replica {
 
 	protected Map<String, CampusServerInterface> campusMap;
 
+	protected Thread dvlThread;
+	protected Thread kklThread;
+	protected Thread wstThread;
+
 	protected Replica(CampusServerInterface dvlCampus, CampusServerInterface kklCampus, CampusServerInterface wstCampus) {
 		this.dvlCampus = dvlCampus;
 		this.kklCampus = kklCampus;
 		this.wstCampus = wstCampus;
+
+		dvlThread = new Thread((CampusImpl)dvlCampus);
+		kklThread = new Thread((CampusImpl)kklCampus);
+		wstThread = new Thread((CampusImpl)wstCampus);
 
 		this.campusMap = new HashMap<>();
 		this.campusMap.put("DVL", dvlCampus);
@@ -29,12 +38,20 @@ public abstract class Replica {
 	/**
 	 * Starts server threads
 	 */
-	public abstract void startServers();
+	public void startServers() {
+		dvlThread.start();
+		kklThread.start();
+		wstThread.start();
+	}
 
 	/**
 	 * Stops server threads and frees their resources
 	 */
-	public abstract void stopServers() throws InterruptedException;
+	public void stopServers() throws InterruptedException {
+		dvlThread.join();
+		kklThread.join();
+		wstThread.join();
+	}
 
 	/**
 	 * Get the replica's current data for all servers

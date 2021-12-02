@@ -33,6 +33,15 @@ public class MockTest {
         rep3.setCurrentData(obj);
         JSONObject obj2 = rep3.getCurrentData();
 
+        try {
+            rep3.stopServers();
+            rep3.startServers();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+
+
     }
 
     @Test
