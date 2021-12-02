@@ -5,10 +5,15 @@ import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 
 import java.io.IOException;
-import java.net.*;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.net.MulticastSocket;
 import java.nio.charset.StandardCharsets;
+import java.util.Comparator;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static DRRS.Config.IPAddresses.MULTICAST_ADR;
 import static DRRS.Config.PortNumbers.*;
@@ -17,7 +22,9 @@ public class Sequencer extends Thread{
     private static Sequencer sequencer;
 
     private final InetAddress multicastGroupAddress;
-    AtomicInteger sequenceNumber;
+    private final AtomicLong sequenceNumber;
+    private final ConcurrentHashMap<String, AtomicLong> lastAckedSeqNums;
+
     ConcurrentLinkedDeque<JSONObject> deliveryQueue;
 
     private final DatagramSocket socket;
@@ -33,7 +40,7 @@ public class Sequencer extends Thread{
     }
 
     public Sequencer() throws IOException {
-        sequenceNumber = new AtomicInteger();
+        sequenceNumber = new AtomicLong();
         deliveryQueue = new ConcurrentLinkedDeque<>();
 
         socket = new DatagramSocket(FE_SEQ);
@@ -42,6 +49,8 @@ public class Sequencer extends Thread{
         multicastSocket = new MulticastSocket(SEQ_RE);
         multicastGroupAddress = InetAddress.getByName(MULTICAST_ADR);
         multicastSocket.joinGroup(multicastGroupAddress);
+
+        lastAckedSeqNums = new ConcurrentHashMap<>();
 
         running = false;
         buf = new byte[10 << 2];
@@ -59,35 +68,54 @@ public class Sequencer extends Thread{
         // Process input -- this is a Json Object
         JSONObject jsonObject = (JSONObject) (JSONValue.parse(received.trim()));
 
-        // Get the sequence id from the message to send in the ack message
-        Object seqId = jsonObject.get(MessageKeys.MESSAGE_ID);
-        if (seqId == null) {
-            System.out.println("Error: received message without a seqId field");
-        } else {
-            long seqIdAsLong = (long) seqId;
+        // Incoming message could be an ack, check if this is the case
+        String messageType = (String) (jsonObject.get(MessageKeys.COMMAND_TYPE));
+        if (messageType.equals(Config.ACK)) {
+            // Received an ack from a member
+            // TODO: The last sequence number acked by a member should be in this message
+            Object lastSeqNum = jsonObject.get("seqNum");
+            if (lastSeqNum instanceof Long) {
+                processAck((Long) lastSeqNum, address.toString());
+            }
+            // If the sequence is in the sync phase, no further messages are accepted from the FE until the history buffer is clear
+        } else if (running) {
+            // Get the sequence id from the message to send in the ack message
+            Object seqId = jsonObject.get(MessageKeys.MESSAGE_ID);
+            if (seqId == null) {
+                System.out.println("Error: received message without a seqId field");
+            } else {
+                long seqIdAsLong = (long) seqId;
 
-            // check if message is a duplicate (e.g. due to retransmission by the FE)
-            sendAckToFE(seqIdAsLong, address, SEQ_FE);
+                sendAckToFE(seqIdAsLong, address, SEQ_FE);
 
-            if (deliveryQueue.contains(seqIdAsLong)) {
-                System.out.println("Message was already delivered, sending ack");
-                return;
+                // check if message is a duplicate (e.g. due to retransmission by the FE)
+                for (JSONObject nextElement : deliveryQueue) {
+                    Object messageId = nextElement.get(MessageKeys.MESSAGE_ID);
+                    if (messageId instanceof Long && (Long) messageId == seqIdAsLong) {
+                        System.out.println("Message was already delivered, sent ack only");
+                        return;
+                    }
+                }
+
+                // If message is not a duplicate, push to the history buffer and multicast
+                System.out.println("Received from FE " + address + ":" + port + ", jsonObject " + jsonObject.toJSONString());
+
+                // increment sequence number atomically and append it to the message
+                long seqNum = sequenceNumber.incrementAndGet();
+                jsonObject.put("seq", seqNum);
+
+                // Store message in the history buffer
+                deliveryQueue.add(jsonObject);
+
+                // If the history buffer reaches its maximum size, switch to sync phase
+            if (deliveryQueue.size() > Config.DELIVERY_QUEUE_MAX_SIZE) {
+                running = false;
             }
 
-            System.out.println("Received from FE " + address + ":" + port + ", jsonObject " + jsonObject.toJSONString());
-
-            // increment sequence number atomically and append it to the message
-            int seqNum = sequenceNumber.incrementAndGet();
-            jsonObject.put("seq", seqNum);
-
-            // Store message in the history buffer
-            // TODO: Manage the queue
-            deliveryQueue.add(jsonObject);
-
-            // Transmit the message to all destinations
-            multicastMessage(jsonObject);
+                // Transmit the message to all destinations
+                multicastMessage(jsonObject);
+            }
         }
-
     }
 
     void multicastMessage(JSONObject msg) throws IOException {
@@ -98,7 +126,29 @@ public class Sequencer extends Thread{
         // TODO: in Replica manager, make sure the sequencer is sending messages in sequential order
     }
 
-    void processAck(int ackSeqNum) {
+    void processAck(long ackSeqNum, String memberName) {
+        if (!lastAckedSeqNums.containsKey(memberName)) {
+            System.out.println("Replica " + memberName + " new last Acked SeqNum: " + ackSeqNum);
+            lastAckedSeqNums.put(memberName, new AtomicLong(ackSeqNum));
+        } else {
+            System.out.println("Replica " + memberName + " new last Acked SeqNum: " + ackSeqNum);
+            lastAckedSeqNums.get(memberName).set(ackSeqNum);
+
+            // Check if history can be cleaned, i.e. whether any messages in the queue have been acked by every replica
+            long minSeqNum = lastAckedSeqNums.values().stream()
+                    .min(Comparator.comparingLong(AtomicLong::longValue))
+                    .orElse(new AtomicLong()).longValue();
+
+            // Remove elements from the head of the queue (oldest elements in the history first), until the sequence ID
+            // encountered is larger than the minimum sequence number across the replica
+            for (JSONObject jsonObject : deliveryQueue) {
+                if ((Integer) jsonObject.get("seq") > minSeqNum) {
+                    break;
+                } else {
+                    deliveryQueue.removeFirst();
+                }
+            }
+        }
 
     }
 
@@ -119,6 +169,7 @@ public class Sequencer extends Thread{
 
     @Override
     public void run() {
+        running = true;
         while(true) {
             try {
                 listenForMessages();
