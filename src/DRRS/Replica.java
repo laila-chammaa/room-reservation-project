@@ -34,7 +34,7 @@ public abstract class Replica {
 	/**
 	 * Stops server threads and frees their resources
 	 */
-	public abstract void stopServers();
+	public abstract void stopServers() throws InterruptedException;
 
 	/**
 	 * Get the replica's current data for all servers
@@ -78,7 +78,7 @@ public abstract class Replica {
 		String studentId;
 		String date;
 		String timeSlot;
-		String timeSlots;
+		String[] timeSlots;
 		String bookingId;
 
 		try {
@@ -87,14 +87,14 @@ public abstract class Replica {
 					adminId = request.get(MessageKeys.ADMIN_ID).toString();
 					roomNumber = Integer.parseInt(request.get(MessageKeys.ROOM_NUM).toString());
 					date = request.get(MessageKeys.DATE).toString();
-					timeSlots = request.get(MessageKeys.TIMESLOTS).toString();
-					return selectCampus(adminId.substring(0,3)).createRoom(adminId, roomNumber, date, timeSlots.split(","));
+					timeSlots = (String[]) request.get(MessageKeys.TIMESLOTS);
+					return selectCampus(adminId.substring(0,3)).createRoom(adminId, roomNumber, date, timeSlots);
 				case Config.DELETE_ROOM:
 					adminId = request.get(MessageKeys.ADMIN_ID).toString();
 					roomNumber = Integer.parseInt(request.get(MessageKeys.ROOM_NUM).toString());
 					date = request.get(MessageKeys.DATE).toString();
-					timeSlots = request.get(MessageKeys.TIMESLOTS).toString();
-					return selectCampus(adminId.substring(0,3)).deleteRoom(adminId, roomNumber, date, timeSlots.split(","));
+					timeSlots = (String[]) request.get(MessageKeys.TIMESLOTS);
+					return selectCampus(adminId.substring(0,3)).deleteRoom(adminId, roomNumber, date, timeSlots);
 				case Config.BOOK_ROOM:
 					studentId = request.get(MessageKeys.STUDENT_ID).toString();
 					roomNumber = Integer.parseInt(request.get(MessageKeys.ROOM_NUM).toString());

@@ -5,11 +5,9 @@ import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
 import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
+import java.net.*;
 import java.util.Queue;
+import java.util.Random;
 import java.util.concurrent.LinkedBlockingQueue;
 
 public class ReplicaManager {
@@ -17,20 +15,30 @@ public class ReplicaManager {
 	private int failureCount;
 	private final Queue<JSONObject> requestQueue;
 	private final Replica replica;
+	private final int replicaNumber;
 	private final ReplicaPorts replicaManagerPorts;
 	private final Object queueLock;
 	private final Thread managerThread;
 	private final Thread replicaThread;
-	private InetAddress managerAddress;
+	private final Thread queueThread;
+	private int lastProcessedSequenceNumber = 0;
+	private final InetAddress managerAddress;
+	private final JSONObject getDataObject;
 	private final JSONParser parser = new JSONParser();
+	private final Random randomizer = new Random();
 	
 	public ReplicaManager(int replicaNumber, Replica replica) throws UnknownHostException {
+		this.replicaNumber = replicaNumber;
 		this.replicaManagerPorts = Config.Ports.REPLICA_MANAGER_PORTS_MAP.get(replicaNumber);
 		managerAddress = InetAddress.getByName(replicaManagerPorts.getRmIpAddress());
+		
+		getDataObject = new JSONObject();
+		getDataObject.put(MessageKeys.COMMAND_TYPE, Config.GET_DATA);
 		
 		this.replica = replica;
 		managerThread = new Thread(new ManagerThread());
 		replicaThread = new Thread(new ReplicaThread());
+		queueThread = new Thread(new QueueThread());
 		this.requestQueue = new LinkedBlockingQueue<>();
 		this.queueLock = new Object();
 	}
@@ -38,7 +46,7 @@ public class ReplicaManager {
 	class ManagerThread implements Runnable {
 		@Override
 		public void run() {
-			try (DatagramSocket socket = new DatagramSocket(replicaManagerPorts.getRmPort())) {
+			try (DatagramSocket socket = new DatagramSocket(replicaManagerPorts.getRmPort(), managerAddress)) {
 				socket.setSoTimeout(1000);
 				while(true) {
 					byte[] receivedBytes = new byte[1024];
@@ -52,13 +60,45 @@ public class ReplicaManager {
 		}
 	}
 	
+	class QueueThread implements Runnable {
+		@Override
+		public void run() {
+			try (MulticastSocket socket = new MulticastSocket(Config.PortNumbers.SEQ_RE)) {
+				socket.joinGroup(InetAddress.getByName(Config.IPAddresses.MULTICAST));
+				while(true) {
+					byte[] receivedBytes = new byte[1024];
+					DatagramPacket receivedPacket = new DatagramPacket(receivedBytes, receivedBytes.length);
+					socket.receive(receivedPacket);
+					JSONObject requestData = (JSONObject) parser.parse(new String(receivedPacket.getData()).trim());
+					synchronized(queueLock) {
+						requestQueue.add(requestData);
+					}
+				}
+			} catch(IOException | ParseException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+	
 	class ReplicaThread implements Runnable {
 		@Override
 		public void run() {
+			replica.startServers();
 			while (true) {
 				synchronized(queueLock) {
 					JSONObject currentRequest = requestQueue.poll();
 					if (currentRequest != null) {
+						int sequenceNumber = Integer.parseInt(currentRequest.get(MessageKeys.SEQ_NUM).toString());
+						
+						while (sequenceNumber <= lastProcessedSequenceNumber) {
+							currentRequest = requestQueue.remove();
+							sequenceNumber = Integer.parseInt(currentRequest.get(MessageKeys.SEQ_NUM).toString());
+							
+							System.out.println("\nSkipping already processed request " + sequenceNumber);
+						}
+						
+						lastProcessedSequenceNumber = sequenceNumber;
+						
 						String message = replica.executeRequest(currentRequest);
 						Config.StatusCode statusCode = Config.StatusCode.SUCCESS;
 
@@ -71,8 +111,6 @@ public class ReplicaManager {
 						returnObject.put(MessageKeys.RM_PORT_NUMBER, replicaManagerPorts.getRmPort());
 						returnObject.put(MessageKeys.STATUS_CODE, statusCode.toString());
 						returnObject.put(MessageKeys.MESSAGE, message);
-						
-						// TODO: use sequence from sequencer
 						
 						try (DatagramSocket socket = new DatagramSocket()) {
 							byte[] dataSent = returnObject.toJSONString().getBytes();
@@ -119,26 +157,58 @@ public class ReplicaManager {
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
-		} else {
-			synchronized(queueLock) {
-				requestQueue.add(requestData);
-			}
 		}
 	}
 	
 	public void start() {
+		this.queueThread.start();
 		this.managerThread.start();
 		this.replicaThread.start();
 	}
 	
 	public void stop() throws InterruptedException {
-		this.managerThread.join();
 		this.replicaThread.join();
+		this.managerThread.join();
+		this.queueThread.join();
+		this.replica.stopServers();
 	}
 	
-	public void resetReplica() {
-		// TODO: get data from other replicas and pass to reset
-		JSONObject currentData = new JSONObject();
+	private JSONObject requestGetData(DatagramSocket socket, ReplicaPorts otherPorts) {
+		try {
+			byte[] getDataBytes = getDataObject.toString().getBytes();
+			
+			DatagramPacket packet = new DatagramPacket(
+					getDataBytes, getDataBytes.length, InetAddress.getByName(otherPorts.getRmIpAddress()), otherPorts.getRmPort()
+			);
+			socket.send(packet);
+			
+			byte[] receiveDataBytes = new byte[1024];
+			DatagramPacket receivedPacket = new DatagramPacket(receiveDataBytes, receiveDataBytes.length);
+			socket.receive(receivedPacket);
+			
+			return (JSONObject) parser.parse(new String(receivedPacket.getData()).trim());
+		} catch(Exception e) {
+			e.printStackTrace();
+			return null;
+		}
+	}
+	
+	public void resetReplica() throws InterruptedException {
+		JSONObject currentData = null;
+		
+		try(DatagramSocket socket = new DatagramSocket()) {
+			socket.setSoTimeout(1000);
+			
+			int pickedReplicaNb;
+			while(currentData == null) {
+				// Get valid random replica
+				while ((pickedReplicaNb = randomizer.nextInt(4) + 1) == replicaNumber);
+				currentData = requestGetData(socket, Config.Ports.REPLICA_MANAGER_PORTS_MAP.get(pickedReplicaNb));
+			}
+		} catch(Exception e) {
+			e.printStackTrace();
+		}
+		
 		this.replica.stopServers();
 		this.replica.startServers();
 		this.replica.setCurrentData(currentData);
