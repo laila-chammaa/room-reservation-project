@@ -62,7 +62,7 @@ public class StudentClient {
 
     public synchronized String getAvailableTimeSlot(String date) {
         this.logger.info(String.format("Client Log | Request: getAvailableTimeSlot | Date: %s", date));
-        return server.getAvailableTimeSlot(date);
+        return server.getAvailableTimeSlot(studentID, date);
     }
 
     public synchronized void cancelBooking(String bookingID) {

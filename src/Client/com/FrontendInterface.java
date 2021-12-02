@@ -139,6 +139,7 @@ public interface FrontendInterface {
 
     /**
      * 
+     * @param arg1
      * @param arg0
      * @return
      *     returns java.lang.String
@@ -148,7 +149,9 @@ public interface FrontendInterface {
     @Action(input = "http://Frontend/FrontendInterface/getAvailableTimeSlotRequest", output = "http://Frontend/FrontendInterface/getAvailableTimeSlotResponse")
     public String getAvailableTimeSlot(
         @WebParam(name = "arg0", partName = "arg0")
-        String arg0);
+        String arg0,
+        @WebParam(name = "arg1", partName = "arg1")
+        String arg1);
 
     /**
      * 

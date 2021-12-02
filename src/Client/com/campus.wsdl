@@ -53,6 +53,7 @@
     </message>
     <message name="getAvailableTimeSlot">
         <part name="arg0" type="xsd:string"/>
+        <part name="arg1" type="xsd:string"/>
     </message>
     <message name="getAvailableTimeSlotResponse">
         <part name="return" type="xsd:string"/>
@@ -80,7 +81,7 @@
             <input wsam:Action="http://Frontend/FrontendInterface/changeReservationRequest" message="tns:changeReservation"/>
             <output wsam:Action="http://Frontend/FrontendInterface/changeReservationResponse" message="tns:changeReservationResponse"/>
         </operation>
-        <operation name="getAvailableTimeSlot">
+        <operation name="getAvailableTimeSlot" parameterOrder="arg0 arg1">
             <input wsam:Action="http://Frontend/FrontendInterface/getAvailableTimeSlotRequest" message="tns:getAvailableTimeSlot"/>
             <output wsam:Action="http://Frontend/FrontendInterface/getAvailableTimeSlotResponse" message="tns:getAvailableTimeSlotResponse"/>
         </operation>

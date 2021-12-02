@@ -250,12 +250,12 @@ public class CampusServer implements CampusServerInterface, Runnable {
                         date, timeslot));
                 UDPClient requestClient = getUdpClient(campusID);
 
-                CampusUDPInterface timeslotReq = new CampusUDP(studentID, campusID, roomNumber, date, timeslot);
-                requestClient.send(timeslotReq);
+                CampusUDPInterface req = new CampusUDP(studentID, campusID, roomNumber, date, timeslot);
+                requestClient.send(req);
 
                 //3.4 Receive the response.
-                CampusUDPInterface timeslotResp = requestClient.getResponse();
-                return ((CampusUDP) timeslotResp).getResultLog();
+                CampusUDPInterface resp = requestClient.getResponse();
+                return ((CampusUDP) resp).getResultLog();
             } catch (Exception e) {
                 resultLog = "Server Log | Request: bookRoom | ERROR: " + campusID + " Not Bound.";
                 this.logger.severe(resultLog);

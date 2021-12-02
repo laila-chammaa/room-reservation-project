@@ -30,7 +30,9 @@ public class StudentDriver {
             testClient1.bookRoom("KKL", 201, "03/01/2020", timeSlot);
             testClient1.bookRoom("WST", 211, "04/01/2020", timeSlot);
             String bookingID = testClient1.bookRoom("DVL", 203, "01/01/2020", timeSlot);
-            testClient1.changeReservation(bookingID, "KKL", (short) 201, timeSlot);
+            if (bookingID != null) {
+                testClient1.changeReservation(bookingID, "KKL", (short) 201, timeSlot);
+            }
 
             testClient1.bookRoom("DVL", 203, "01/01/2020", timeSlot3);
 
