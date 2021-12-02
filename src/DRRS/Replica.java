@@ -1,51 +1,71 @@
 package DRRS;
 
 import Replicas.CampusServerInterface;
+import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
 import java.util.HashMap;
 import java.util.Map;
 
 public abstract class Replica {
-	
+
 	protected CampusServerInterface dvlCampus;
 	protected CampusServerInterface kklCampus;
 	protected CampusServerInterface wstCampus;
-	
+
 	protected Map<String, CampusServerInterface> campusMap;
-	
+
 	protected Replica(CampusServerInterface dvlCampus, CampusServerInterface kklCampus, CampusServerInterface wstCampus) {
 		this.dvlCampus = dvlCampus;
 		this.kklCampus = kklCampus;
 		this.wstCampus = wstCampus;
-		
+
 		this.campusMap = new HashMap<>();
 		this.campusMap.put("DVL", dvlCampus);
 		this.campusMap.put("KKL", kklCampus);
 		this.campusMap.put("WST", wstCampus);
 	}
-	
+
 	/**
 	 * Starts server threads
 	 */
 	public abstract void startServers();
-	
+
 	/**
 	 * Stops server threads and frees their resources
 	 */
-	public abstract void stopServers();
-	
+	public abstract void stopServers() throws InterruptedException;
+
 	/**
 	 * Get the replica's current data for all servers
 	 * @return {String}
 	 */
-	public abstract JSONObject getCurrentData();
-	
+	public JSONObject getCurrentData() {
+		JSONArray kklRecords = kklCampus.getRecords();
+		JSONArray dvlRecords = dvlCampus.getRecords();
+		JSONArray wstRecords = wstCampus.getRecords();
+		JSONObject allRecords = new JSONObject();
+
+		allRecords.put("KKL", kklRecords);
+		allRecords.put("DVL", dvlRecords);
+		allRecords.put("WST", wstRecords);
+
+		return allRecords;
+	}
+
 	/**
 	 * Set the replica's current data for all servers
 	 */
-	public abstract void setCurrentData(JSONObject currentData);
-	
+	public void setCurrentData(JSONObject currentData) {
+		JSONArray kklRecords = (JSONArray) currentData.get("KKL");
+		JSONArray dvlRecords = (JSONArray) currentData.get("DVL");
+		JSONArray wstRecords = (JSONArray) currentData.get("WST");
+
+		kklCampus.setRecords(kklRecords);
+		dvlCampus.setRecords(dvlRecords);
+		wstCampus.setRecords(wstRecords);
+	}
+
 	/**
 	 * Executes the request by delegating to its servers
 	 * @param request
@@ -58,23 +78,23 @@ public abstract class Replica {
 		String studentId;
 		String date;
 		String timeSlot;
-		String timeSlots;
+		String[] timeSlots;
 		String bookingId;
-		
+
 		try {
 			switch(command) {
 				case Config.CREATE_ROOM:
 					adminId = request.get(MessageKeys.ADMIN_ID).toString();
 					roomNumber = Integer.parseInt(request.get(MessageKeys.ROOM_NUM).toString());
 					date = request.get(MessageKeys.DATE).toString();
-					timeSlots = request.get(MessageKeys.TIMESLOTS).toString();
-					return selectCampus(adminId.substring(0,3)).createRoom(adminId, roomNumber, date, timeSlots.split(","));
+					timeSlots = (String[]) request.get(MessageKeys.TIMESLOTS);
+					return selectCampus(adminId.substring(0,3)).createRoom(adminId, roomNumber, date, timeSlots);
 				case Config.DELETE_ROOM:
 					adminId = request.get(MessageKeys.ADMIN_ID).toString();
 					roomNumber = Integer.parseInt(request.get(MessageKeys.ROOM_NUM).toString());
 					date = request.get(MessageKeys.DATE).toString();
-					timeSlots = request.get(MessageKeys.TIMESLOTS).toString();
-					return selectCampus(adminId.substring(0,3)).deleteRoom(adminId, roomNumber, date, timeSlots.split(","));
+					timeSlots = (String[]) request.get(MessageKeys.TIMESLOTS);
+					return selectCampus(adminId.substring(0,3)).deleteRoom(adminId, roomNumber, date, timeSlots);
 				case Config.BOOK_ROOM:
 					studentId = request.get(MessageKeys.STUDENT_ID).toString();
 					roomNumber = Integer.parseInt(request.get(MessageKeys.ROOM_NUM).toString());
@@ -101,10 +121,10 @@ public abstract class Replica {
 		} catch(Exception e) {
 			e.printStackTrace();
 		}
-		
+
 		return null;
 	}
-	
+
 	private CampusServerInterface selectCampus(String campusName) {
 		return campusMap.get(campusName);
 	}

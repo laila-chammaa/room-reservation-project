@@ -1,8 +1,11 @@
 package Replicas.Replica2;
 
+import DRRS.MessageKeys;
 import Replicas.CampusServerInterface;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
 
-import java.io.*;
+import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
@@ -613,5 +616,49 @@ public class RoomRecordCampus implements CampusServerInterface, Runnable {
 		}
 		
 		return this.campus + " " + nbSlots;
+	}
+
+	@Override
+	public JSONArray getRecords() {
+		JSONArray jsonRecords = new JSONArray();
+		
+		// For each date
+		for (Map.Entry<String, Map<Integer, List<RoomRecordBooking>>> dateEntry : db.entrySet()) {
+			Map<Integer, List<RoomRecordBooking>> rooms = dateEntry.getValue();
+			String date = dateEntry.getKey();
+			// For each room in date
+			for (Map.Entry<Integer, List<RoomRecordBooking>> roomEntry : rooms.entrySet()) {
+				int roomNb = roomEntry.getKey();
+				// For each booking in room
+				for (RoomRecordBooking booking : roomEntry.getValue()) {
+					JSONObject jsonRecord = new JSONObject();
+					jsonRecord.put(MessageKeys.DATE, date);
+					jsonRecord.put(MessageKeys.ROOM_NUM, roomNb);
+					jsonRecord.put(MessageKeys.TIMESLOT, booking.timeSlot);
+					jsonRecord.put(MessageKeys.BOOKING_ID, booking.bookingId);
+					jsonRecord.put(MessageKeys.STUDENT_ID, booking.bookedBy);
+					jsonRecords.add(jsonRecord);
+				}
+			}
+		}
+		return jsonRecords;
+	}
+
+	@Override
+	public void setRecords(JSONArray records) {
+		this.db = new ConcurrentHashMap<>();
+		for (JSONObject record : (ArrayList<JSONObject>) records) {
+			String date = record.get(MessageKeys.DATE).toString();
+			String timeslot = record.get(MessageKeys.TIMESLOT).toString();
+			String bookedBy = record.get(MessageKeys.STUDENT_ID).toString();
+			String bookingId = record.get(MessageKeys.BOOKING_ID).toString();
+			int roomNb = Integer.parseInt(record.get(MessageKeys.ROOM_NUM).toString());
+			
+			// Create date or room entries if not already present
+			Map<Integer, List<RoomRecordBooking>> dateEntry = this.db.computeIfAbsent(date, k -> new ConcurrentHashMap<>());
+			List<RoomRecordBooking> bookings = dateEntry.computeIfAbsent(roomNb, k -> new ArrayList<>());
+			
+			bookings.add(new RoomRecordBooking(timeslot, bookedBy, bookingId));
+		}
 	}
 }
