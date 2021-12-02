@@ -1,5 +1,6 @@
 package Replicas.Replica3.campus;
 
+import DRRS.Config;
 import DRRS.MessageKeys;
 import Replicas.CampusServerInterface;
 import Replicas.Replica3.helpers.Helpers;
@@ -395,7 +396,7 @@ public class CampusImpl implements CampusServerInterface, Runnable {
             // SERIALIZATION END
 
             byte[] m = bStream.toByteArray();
-            InetAddress aHost = InetAddress.getByName("localhost");
+            InetAddress aHost = InetAddress.getByName(Config.IPAddresses.REPLICA3);
 
             DatagramPacket request = new DatagramPacket(m, m.length, aHost, serverPort);
             aSocket.send(request);

@@ -68,7 +68,8 @@ public class ReplicaManager {
 			jsonAck.put(MessageKeys.COMMAND_TYPE, Config.ACK);
 			byte[] ack = jsonAck.toString().getBytes();
 			try (DatagramSocket socket = new DatagramSocket()) {
-				DatagramPacket packet = new DatagramPacket(ack, ack.length, InetAddress.getLocalHost(), Config.PortNumbers.FE_SEQ);
+				DatagramPacket packet = new DatagramPacket(ack, ack.length, InetAddress.getByName(Config.IPAddresses.SEQUENCER),
+						Config.PortNumbers.FE_SEQ);
 				socket.send(packet);
 			} catch(IOException e) {
 				e.printStackTrace();
@@ -114,6 +115,7 @@ public class ReplicaManager {
 						
 						lastProcessedSequenceNumber = sequenceNumber;
 						
+						String messageId = currentRequest.get(MessageKeys.MESSAGE_ID).toString();
 						String message = replica.executeRequest(currentRequest);
 						Config.StatusCode statusCode = Config.StatusCode.SUCCESS;
 
@@ -126,10 +128,11 @@ public class ReplicaManager {
 						returnObject.put(MessageKeys.RM_PORT_NUMBER, replicaManagerPorts.getRmPort());
 						returnObject.put(MessageKeys.STATUS_CODE, statusCode.toString());
 						returnObject.put(MessageKeys.MESSAGE, message);
+						returnObject.put(MessageKeys.MESSAGE_ID, messageId);
 						
 						try (DatagramSocket socket = new DatagramSocket()) {
 							byte[] dataSent = returnObject.toJSONString().getBytes();
-							socket.send(new DatagramPacket(dataSent, dataSent.length, InetAddress.getLocalHost(), Config.PortNumbers.RE_FE));
+							socket.send(new DatagramPacket(dataSent, dataSent.length, InetAddress.getByName(Config.IPAddresses.FRONT_END), Config.PortNumbers.RE_FE));
 						} catch(IOException e) {
 							e.printStackTrace();
 						}
