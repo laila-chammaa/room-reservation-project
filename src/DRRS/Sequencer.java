@@ -9,7 +9,6 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
-import java.nio.charset.StandardCharsets;
 import java.util.Comparator;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
@@ -57,8 +56,10 @@ public class Sequencer extends Thread{
     }
 
     void listenForMessages() throws IOException {
+        System.out.println("Listening for messages.");
         DatagramPacket packet = new DatagramPacket(buf, buf.length);
         socket.receive(packet);
+        System.out.println("Received");
 
         InetAddress address = packet.getAddress();
         int port = packet.getPort();

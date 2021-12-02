@@ -10,7 +10,6 @@ import org.json.simple.parser.ParseException;
 import javax.jws.WebService;
 import java.io.IOException;
 import java.net.*;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Optional;
 import java.util.concurrent.*;
@@ -200,11 +199,11 @@ public class FrontendImpl implements FrontendInterface {
 
         return makeRequest(message);
     }
-    
+
     private JSONArray buildTimeSlotArray(String[] timeSlots) {
         JSONArray timeslotArray = new JSONArray();
         Collections.addAll(timeslotArray, timeSlots);
-        
+
         return timeslotArray;
     }
 
@@ -240,7 +239,7 @@ public class FrontendImpl implements FrontendInterface {
                 receiverSocket = new DatagramSocket(Config.PortNumbers.SEQ_FE);
 
                 byte[] messageBuffer = message.getSendData().toString().getBytes();
-                InetAddress host = InetAddress.getLocalHost();
+                InetAddress host = InetAddress.getByName(Config.IPAddresses.SEQUENCER);
                 DatagramPacket request = new DatagramPacket(messageBuffer, messageBuffer.length, host, Config.PortNumbers.FE_SEQ);
 
                 System.out.println("Sending message to sequencer: " + message.getSendData().toJSONString());
@@ -390,22 +389,6 @@ public class FrontendImpl implements FrontendInterface {
                 return Optional.empty();
             }
         }
-
-        private String getIPFromPort(int port) {
-            
-            switch (port) {
-                case Config.Ports.REPLICA_PORT_1:
-                    return Config.IPAddresses.REPLICA1;
-                case Config.Ports.REPLICA_PORT_2:
-                    return Config.IPAddresses.REPLICA2;
-                case Config.Ports.REPLICA_PORT_3:
-                    return Config.IPAddresses.REPLICA3;
-                case Config.Ports.REPLICA_PORT_4:
-                    return Config.IPAddresses.REPLICA4;
-            }
-
-            return null;
-        }
     }
 
 
@@ -536,8 +519,6 @@ public class FrontendImpl implements FrontendInterface {
     private void notifyReplicaOfProcessCrash(int port) {
         DatagramSocket socket = null;
         JSONObject payload = new JSONObject();
-        int[] ports = new int[]{Config.Ports.REPLICA_PORT_1, Config.Ports.REPLICA_PORT_2, Config.Ports.REPLICA_PORT_3, Config.Ports.REPLICA_PORT_4};
-        String[] hosts = new String[]{Config.IPAddresses.REPLICA1, Config.IPAddresses.REPLICA2, Config.IPAddresses.REPLICA3, Config.IPAddresses.REPLICA4};
 
         payload.put(MessageKeys.COMMAND_TYPE, Config.REPORT_FAILURE);
         payload.put(MessageKeys.FAILURE_TYPE, Config.Failure.PROCESS_CRASH.toString());
@@ -547,12 +528,11 @@ public class FrontendImpl implements FrontendInterface {
             socket = new DatagramSocket();
             byte[] messageBuffer = payload.toString().getBytes();
 
-            for (int i = 0; i < 3; i++) {
-                InetAddress host = InetAddress.getByName(hosts[i]);
-                DatagramPacket request = new DatagramPacket(messageBuffer, messageBuffer.length, host, ports[i]);
-                socket.send(request);
-                System.out.println("Sending process crash error message to Replica Manager " + ports[i] + " about Replica on port: " + port);
-            }
+            InetAddress host = InetAddress.getByName(getIPFromPort(port));
+            DatagramPacket request = new DatagramPacket(messageBuffer, messageBuffer.length, host, port);
+            socket.send(request);
+            System.out.println("Sending process crash error message to Replica Manager " + port + " about Replica on port: " + port);
+
 
         } catch (SocketTimeoutException e) {
             System.out.println("Replica Manager on port " + port + " is not responding.");
@@ -599,6 +579,22 @@ public class FrontendImpl implements FrontendInterface {
 
     private void startTimer(Message message) {
         message.setStartTime(System.currentTimeMillis());
+    }
+
+    private String getIPFromPort(int port) {
+
+        switch (port) {
+            case Config.Ports.REPLICA_PORT_1:
+                return Config.IPAddresses.REPLICA1;
+            case Config.Ports.REPLICA_PORT_2:
+                return Config.IPAddresses.REPLICA2;
+            case Config.Ports.REPLICA_PORT_3:
+                return Config.IPAddresses.REPLICA3;
+            case Config.Ports.REPLICA_PORT_4:
+                return Config.IPAddresses.REPLICA4;
+        }
+
+        return null;
     }
 
     private synchronized Message createMessage(JSONObject payload) throws InterruptedException {

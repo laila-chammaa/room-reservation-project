@@ -1,5 +1,6 @@
 package Replicas.Replica1.com;
 
+import DRRS.Config;
 import DRRS.MessageKeys;
 import Replicas.CampusServerInterface;
 import Replicas.Replica1.model.Booking;
@@ -55,7 +56,7 @@ public class CampusServer implements CampusServerInterface, Runnable {
 
     public CampusServer() {
         this.campusID = "DVL"; //default value
-        this.UDPHost = "localhost";
+        this.UDPHost = Config.IPAddresses.REPLICA1;
         this.UDPPort = 8080;
         this.serversList = new HashMap<>(); //default value
 
@@ -78,7 +79,7 @@ public class CampusServer implements CampusServerInterface, Runnable {
 
     public CampusServer(String campusID, int port, HashMap<String, String> serversList) {
         this.campusID = campusID;
-        this.UDPHost = "localhost";
+        this.UDPHost = Config.IPAddresses.REPLICA1;
         this.UDPPort = port;
         this.serversList = serversList;
 
@@ -599,9 +600,9 @@ public class CampusServer implements CampusServerInterface, Runnable {
         JSONArray jsonRecords = new JSONArray();
 
         for (Map.Entry<String, Map.Entry<String, Integer>> record : roomRecords.entrySet()) {
-            JSONObject jsonRecord = new JSONObject();
             List<Booking> bookings = bookingRecords.get(record.getKey());
             for (Booking booking : bookings) {
+                JSONObject jsonRecord = new JSONObject();
                 jsonRecord.put(MessageKeys.DATE, record.getValue().getKey());
                 jsonRecord.put(MessageKeys.ROOM_NUM, record.getValue().getValue());
                 jsonRecord.put(MessageKeys.TIMESLOT, booking.getTimeslot());
