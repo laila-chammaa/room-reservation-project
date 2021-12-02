@@ -604,29 +604,68 @@ public class CampusServer implements CampusServerInterface, Runnable {
         for (Map.Entry<String, Map.Entry<String, Integer>> record : roomRecords.entrySet()) {
             JSONObject jsonRecord = new JSONObject();
             List<Booking> bookings = bookingRecords.get(record.getKey());
-
-            jsonRecord.put(MessageKeys.DATE, record.getValue().getKey());
-            jsonRecord.put(MessageKeys.ROOM_NUM, record.getValue().getValue());
             for (Booking booking : bookings) {
+                jsonRecord.put(MessageKeys.DATE, record.getValue().getKey());
+                jsonRecord.put(MessageKeys.ROOM_NUM, record.getValue().getValue());
                 jsonRecord.put(MessageKeys.TIMESLOT, booking.getTimeslot());
                 jsonRecord.put(MessageKeys.BOOKING_ID, booking.getBookingID());
                 jsonRecord.put(MessageKeys.STUDENT_ID, booking.getBookedBy());
+                jsonRecords.add(jsonRecord);
             }
-            jsonRecords.add(jsonRecord);
         }
         return jsonRecords;
     }
 
     @Override
     public void setRecords(JSONArray records) {
-        for (Object record : records) {
-            JSONObject jsonRecord = (JSONObject) record;
+        this.roomRecords = new ConcurrentHashMap<>();
+        this.bookingRecords = new ConcurrentHashMap<>();
 
-            this.createRoom("",
-                    Integer.parseInt(jsonRecord.get(MessageKeys.ROOM_NUM).toString()),
-                    jsonRecord.get(MessageKeys.DATE).toString(),
-                    new String[]{jsonRecord.get(MessageKeys.TIMESLOT).toString()});
+        stuBkngCntMap = new ArrayList<>(55);
+        for (int i = 0; i < 55; i++)
+            stuBkngCntMap.add(new HashMap<>());
+
+        recordIdCount = 1;
+
+        for (Object jrecord : records) {
+            JSONObject record = (JSONObject) jrecord;
+
+            String date = record.get(MessageKeys.DATE).toString();
+            String timeslot = record.get(MessageKeys.TIMESLOT).toString();
+            String bookedBy = record.get(MessageKeys.STUDENT_ID).toString();
+            String bookingId = record.get(MessageKeys.BOOKING_ID).toString();
+            int roomNb = Integer.parseInt(record.get(MessageKeys.ROOM_NUM).toString());
+
+            Optional<Map.Entry<String, Map.Entry<String, Integer>>> roomRecord = roomRecords.entrySet().stream()
+                    .filter(h -> h.getValue().getKey().equals(date) && h.getValue().getValue() == roomNb).findFirst();
+            if (roomRecord.isPresent()) {
+                String recordID = roomRecord.get().getKey();
+                Booking booking = new Booking(recordID, bookedBy, timeslot, bookingId);
+                updateRecord(recordID, booking);
+            } else {
+                createRecord(roomNb, date, bookedBy, timeslot, bookingId);
+            }
         }
+    }
+
+    private void createRecord(int roomNumber, String date, String bookedBy, String timeslot, String bookingId) {
+        String recordID = "RR" + String.format("%05d", recordIdCount);
+        incrementRecordID();
+        while (roomRecords.get(recordID) != null) {
+            incrementRecordID();
+            recordID = "RR" + recordIdCount;
+        }
+        roomRecords.put(recordID, new AbstractMap.SimpleEntry<>(date, roomNumber));
+        List<Booking> newBookings = new ArrayList<>();
+        newBookings.add(new Booking(recordID, bookedBy, timeslot, bookingId));
+        bookingRecords.put(recordID, newBookings);
+    }
+
+    private void updateRecord(String recordID, Booking booking) {
+        List<Booking> previousBookings = bookingRecords.get(recordID);
+        List<Booking> newBookings = new ArrayList<>(previousBookings);
+        newBookings.add(booking);
+        bookingRecords.put(recordID, newBookings);
     }
 
     @Override
