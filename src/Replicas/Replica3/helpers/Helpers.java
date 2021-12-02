@@ -16,31 +16,6 @@ public class Helpers {
         return df.format(date);
     }
 
-    public static String skipConflictingTimeSlots(HashMap<String, RoomRecord> previousTimeSlots, String[] newTimeSlots, int roomNumber, String date, String RecordID) {
-        StringBuilder timeConflicts = new StringBuilder();
-        boolean skipTimeSlot;
-        for (String newTime : newTimeSlots) {
-            skipTimeSlot = false;
-            for (String previousTime : previousTimeSlots.keySet()) {
-                try {
-                    if (!TimeUtils.validateTime(previousTime, newTime)) {
-                        timeConflicts.append("Could not add " + newTime + ". Time conflict with " + previousTime + "\n");
-                        skipTimeSlot = true;
-                        break;
-                    }
-                } catch (ParseException e) {
-                    e.printStackTrace();
-                    return "ERROR PARSING DATE";
-                }
-            }
-            if (skipTimeSlot) continue;
-
-            previousTimeSlots.put(newTime, new RoomRecord(newTime, roomNumber, date, RecordID));
-        }
-
-        return timeConflicts.toString();
-    }
-
     public static Date createDateFromString(String sDate) {
         DateFormat df = new SimpleDateFormat("dd-MM-yyyy", Locale.ENGLISH);
         Date date = null;

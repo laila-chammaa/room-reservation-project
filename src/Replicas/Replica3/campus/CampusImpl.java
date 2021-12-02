@@ -1,9 +1,12 @@
 package Replicas.Replica3.campus;
 
+import DRRS.MessageKeys;
+import Replicas.CampusServerInterface;
 import Replicas.Replica3.helpers.Helpers;
 import Replicas.Replica3.repo.CentralRepository;
 import Replicas.Replica3.utils.TextLogger;
-import Replicas.UDPUtils;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
 
 import java.io.*;
 import java.net.DatagramPacket;
@@ -13,36 +16,32 @@ import java.net.SocketException;
 import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.HashMap;
-import java.util.Locale;
+import java.util.*;
 
-public class CampusImpl implements CampusInterface {
+public class CampusImpl implements CampusServerInterface, Runnable {
+    private static final Object createRoomRequestLock = new Object();
+    private static final Object deleteRoomRequestLock = new Object();
+    private static final Object bookRoomRequestLock = new Object();
+    private static final Object cancelBookingRequestLock = new Object();
+
     private String serverName;
     private HashMap<String, HashMap<Integer, HashMap<String, RoomRecord>>> roomRecords;
     TextLogger logger;
+    private int UDPPort;
+    private HashMap<String, Integer> otherSocketPorts;
 
-//    public CampusImpl(String serverName) {
-//        this.serverName = serverName;
-//        roomRecords = new HashMap<>();
-//        logger = new TextLogger(this.serverName + "Server_log.txt");
-//        new Thread(() -> udpLoop()).start();
-//
-//        init();
-//    }
-
-    public CampusImpl(String serverName) {
+    public CampusImpl(String serverName, int UDPPort, HashMap<String, Integer> otherSocketPorts) {
+        this.UDPPort = UDPPort;
         this.serverName = serverName;
+        this.otherSocketPorts = otherSocketPorts;
+        roomRecords = new HashMap<>();
+        logger = new TextLogger(this.serverName + "Server_log.txt");
     }
 
     @Override
     public void run() {
-        roomRecords = new HashMap<>();
-        logger = new TextLogger(this.serverName + "Server_log.txt");
-        new Thread(() -> udpLoop()).start();
-
-        init();
+        System.out.println("starting " + this.serverName);
+        udpLoop();
     }
 
     private void udpLoop() {
@@ -50,7 +49,7 @@ public class CampusImpl implements CampusInterface {
         String msg = "";
 
         try {
-            aSocket = new DatagramSocket(UDPUtils.getUdpPortNum(this.serverName));
+            aSocket = new DatagramSocket(this.UDPPort);
             byte[] buffer = new byte[4096];
 
             while (true) {
@@ -106,7 +105,7 @@ public class CampusImpl implements CampusInterface {
     @Override
     public synchronized String createRoom(String adminID, int roomNumber, String date, String[] timeSlots) {
         if (!authenticate(adminID)) return "Failure: failed to authenticate admin";
-        String successMessage = "Successfully added timeslots for " + date + " in room " + roomNumber;
+        String successMessage = "Success: Successfully added timeslots for " + date + " in room " + roomNumber;
 
         if (this.roomRecords.containsKey(date) &&
                 this.roomRecords.get(date).containsKey(roomNumber)) {
@@ -114,17 +113,17 @@ public class CampusImpl implements CampusInterface {
             HashMap<String, RoomRecord> previousTimeSlots = this.roomRecords.get(date).get(roomNumber);
             String rrid = "RR" + CentralRepository.getRRIDCount();
             CentralRepository.incrementRRIDCount();
-            String timeConflicts = Helpers.skipConflictingTimeSlots(previousTimeSlots, timeSlots, roomNumber, date, rrid);
+//            String timeConflicts = Helpers.skipConflictingTimeSlots(previousTimeSlots, timeSlots, roomNumber, date, rrid);
 
-            logMessage(roomNumber, "Create room", timeSlots, successMessage + "\n" + timeConflicts);
+            logMessage(roomNumber, "Create room", timeSlots, successMessage + "\n");
 
-            return successMessage + "\n" + timeConflicts;
+            return successMessage;
         } else if (this.roomRecords.containsKey(date)) {
             HashMap<String, RoomRecord> roomRecordHashMap = new HashMap<>();
             for (String s : timeSlots) {
                 String rrid = "RR" + CentralRepository.getRRIDCount();
                 CentralRepository.incrementRRIDCount();
-                roomRecordHashMap.put(s, new RoomRecord(s, roomNumber, date, rrid));
+                roomRecordHashMap.put(s, new RoomRecord(s, roomNumber, date, rrid, serverName));
             }
             this.roomRecords.get(date).put(roomNumber, roomRecordHashMap);
 
@@ -138,7 +137,7 @@ public class CampusImpl implements CampusInterface {
         for (String s : timeSlots) {
             String rrid = "RR" + CentralRepository.getRRIDCount();
             CentralRepository.incrementRRIDCount();
-            roomRecordHashMap.put(s, new RoomRecord(s, roomNumber, date, rrid));
+            roomRecordHashMap.put(s, new RoomRecord(s, roomNumber, date, rrid, serverName));
         }
         roomInfo.put(roomNumber, roomRecordHashMap);
         this.roomRecords.put(date, roomInfo);
@@ -152,7 +151,7 @@ public class CampusImpl implements CampusInterface {
     @Override
     public synchronized String deleteRoom(String adminID, int roomNumber, String date, String[] timeSlots) {
         if (!authenticate(adminID)) return "Failure: failed to authenticate admin";
-        StringBuilder deletedRoomsMessage = new StringBuilder();
+        StringBuilder deletedRoomsMessage = new StringBuilder("Success: ");
         // check if room exists first
         if (this.roomRecords.containsKey(date) &&
                 this.roomRecords.get(date).containsKey(roomNumber)) {
@@ -176,11 +175,10 @@ public class CampusImpl implements CampusInterface {
             }
         } else {
             logMessage(roomNumber, "Delete room", timeSlots, "Record does not exist!");
-            return "Record does not exist!";
+            return "Failure: Record does not exist!";
         }
 
         logMessage(roomNumber, "Delete room", timeSlots, deletedRoomsMessage.toString());
-
         return deletedRoomsMessage.toString();
     }
 
@@ -192,7 +190,7 @@ public class CampusImpl implements CampusInterface {
     public synchronized String bookRoom(String studentID, String campusName, int roomNumber, String date, String timeSlot) {
         if (!campusName.equals(this.serverName)) {
             UdpMessage reqMessage = new UdpMessage("bookRoom", studentID, campusName, Integer.toString(roomNumber), timeSlot, date , null);
-            return udpSend(reqMessage, UDPUtils.getUdpPortNum(campusName));
+            return udpSend(reqMessage, this.otherSocketPorts.get(campusName));
         }
 
         RoomRecord rr = null;
@@ -202,17 +200,17 @@ public class CampusImpl implements CampusInterface {
 
         } else {
             logMessage(roomNumber, "Book room on " + campusName, timeSlot, "Invalid selection!");
-            return "Invalid selection!";
+            return "Failure: Invalid selection!";
         }
         if (rr == null) {
             logMessage(roomNumber, "Book room on " + campusName, timeSlot, "Invalid selection!");
-            return "Invalid selection!";
+            return "Failure: Invalid selection!";
         }
         // Room is free, student can book
         if (!rr.isBooked()) {
             if (checkWeeklyBookCount(date, studentID) == 3) {
                 logMessage(roomNumber, "Book room on " + campusName, timeSlot, "You can only book 3 timeslots per week!");
-                return "You can only book 3 timeslots per week!";
+                return "Failure: You can only book 3 timeslots per week!";
             }
             String bookingID = rr.book(studentID);
             CentralRepository.getBookingRecord().put(bookingID, rr);
@@ -222,11 +220,11 @@ public class CampusImpl implements CampusInterface {
             logMessage(roomNumber, "Book room on " + campusName, timeSlot, bookingID + " booked on campus " + this.serverName +
                     "\nTotal rooms booked in week of " + date + ": " + bookCountInWeek);
 
-            return bookingID + " booked on campus " + this.serverName +
-                    "\nTotal rooms booked in week of " + date + ": " + bookCountInWeek;
+            return "Success: " + "Room booked on campus " + this.serverName +
+                    "\nTotal rooms booked in week of " + date + ": " + bookCountInWeek + " BookingID: " + bookingID ;
         } else {
             logMessage(roomNumber, "Book room on " + campusName, timeSlot, "Room already booked!");
-            return "Room already booked!";
+            return "Failure: Room already booked!";
         }
     }
 
@@ -251,10 +249,10 @@ public class CampusImpl implements CampusInterface {
 
         } else {
             logMessage(rr.getRoomNumber(), "Cancel booking", rr.getTimeSlot(), "Can't cancel booking, room isn't booked by you!");
-            return "Can't cancel booking, room isn't booked by you!";
+            return "Failure: Can't cancel booking, room isn't booked by you!";
         }
 
-        String serverMessage ="Booking canceled on " + rr.getDate() + " at " + rr.getTimeSlot();
+        String serverMessage ="Success: Booking canceled on " + rr.getDate() + " at " + rr.getTimeSlot();
         logMessage(rr.getRoomNumber(), "Cancel booking", rr.getTimeSlot(), serverMessage);
         String date = rr.getDate();
 
@@ -276,14 +274,14 @@ public class CampusImpl implements CampusInterface {
             } else {
                 logger.log("Request completed");
                 logger.log("Server response: Impossible to change booking, bookingID does not exits!");
-                return "Impossible to change booking, bookingID does not exits!";
+                return "Failure: Impossible to change booking, bookingID does not exits!";
             }
 
             // check if booking can be canceled
             if (!rr.getBookedBy().equals(studentID)) {
                 logger.log("Request completed");
                 logger.log("Server response: Can not alter booking, room is not booked by you!");
-                return "Can not alter booking, room is not booked by you!";
+                return "Failure: Can not alter booking, room is not booked by you!";
             }
 
             // Check if new booking is available before cancelling previous one
@@ -297,18 +295,72 @@ public class CampusImpl implements CampusInterface {
                     String msg = this.bookRoom(studentID, this.serverName, newRoomNumber, previousDate, newTimeSlot);
                     logger.log("Request completed");
                     logger.log("Server response: Booking changed, " + msg);
-                    return "Booking changed, "  + msg;
+                    return "Success: Booking changed, "  + msg;
                 }
             } else {
                 logger.log("Request completed");
                 logger.log("Server response: Impossible to change booking, new booking not available!");
-                return "Impossible to change booking, new booking not available!";
+                return "Failure: Impossible to change booking, new booking not available!";
             }
 
-            return "Could not change booking, unknown error!";
+            return "Failure: Could not change booking, unknown error!";
         } else {
             UdpMessage reqMessage = new UdpMessage("changeBooking", studentID, newCampusName, Integer.toString(newRoomNumber), newTimeSlot, null, bookingID);
-            return udpSend(reqMessage, UDPUtils.getUdpPortNum(newCampusName));
+            return udpSend(reqMessage, this.otherSocketPorts.get(newCampusName));
+        }
+    }
+
+    @Override
+    public JSONArray getRecords() {
+        JSONArray jsonRecords = new JSONArray();
+
+        for (Map.Entry<String, HashMap<Integer, HashMap<String, RoomRecord>>> dateEntry: roomRecords.entrySet()) {
+            HashMap<Integer, HashMap<String, RoomRecord>> rooms = dateEntry.getValue();
+            String date = dateEntry.getKey();
+            // For each room
+            for (Map.Entry<Integer, HashMap<String, RoomRecord>> timeSlots : rooms.entrySet()) {
+                int roomNb = timeSlots.getKey();
+                HashMap<String, RoomRecord> timeSlotEntry = timeSlots.getValue();
+                for (Map.Entry<String, RoomRecord> roomEntry : timeSlotEntry.entrySet()) {
+                    RoomRecord rr = roomEntry.getValue();
+                    JSONObject jsonRecord = new JSONObject();
+                    jsonRecord.put(MessageKeys.DATE, date);
+                    jsonRecord.put(MessageKeys.ROOM_NUM, roomNb);
+                    jsonRecord.put(MessageKeys.TIMESLOT, rr.getTimeSlot());
+                    jsonRecord.put(MessageKeys.BOOKING_ID, rr.getBookingID());
+                    jsonRecord.put(MessageKeys.STUDENT_ID, rr.getBookedBy());
+                    jsonRecords.add(jsonRecord);
+                }
+            }
+        }
+        return jsonRecords;
+    }
+
+    @Override
+    public void setRecords(JSONArray records) {
+        HashMap<String, RoomRecord> timeRoomRecord = new HashMap<>();
+        HashMap<Integer, HashMap<String, RoomRecord>> roomNumberRR = new HashMap<>();
+
+        for (Object jObj : records) {
+            JSONObject record = (JSONObject) jObj;
+
+            String date = record.get(MessageKeys.DATE).toString();
+            String timeslot = record.get(MessageKeys.TIMESLOT).toString();
+            String bookedBy = record.get(MessageKeys.STUDENT_ID).toString();
+            String bookingId = record.get(MessageKeys.BOOKING_ID).toString();
+            int roomNb = Integer.parseInt(record.get(MessageKeys.ROOM_NUM).toString());
+
+            RoomRecord tmp = new RoomRecord(timeslot, roomNb, date, "", this.serverName);
+            tmp.setBookingID(bookingId);
+            tmp.setBookedBy(bookedBy);
+
+            if (!bookedBy.equals("") && !bookingId.equals("")) {
+                CentralRepository.getBookingRecord().put(bookingId, tmp);
+            }
+            timeRoomRecord.put(timeslot, tmp);
+            roomNumberRR.put(roomNb, timeRoomRecord);
+
+            this.roomRecords.put(date, roomNumberRR);
         }
     }
 
@@ -320,7 +372,7 @@ public class CampusImpl implements CampusInterface {
         String[] serverList = {"DVL", "WST", "KKL"};
         for (String serverName : serverList) {
             if (!serverName.equals(this.serverName)) {
-                int serverPort = UDPUtils.getUdpPortNum(serverName);
+                int serverPort = this.otherSocketPorts.get(serverName);
                 UdpMessage reqMessage = new UdpMessage("internalGet", null, null, null, "", date, null);
                 msg += udpSend(reqMessage, serverPort) + " ";
             }
@@ -410,7 +462,7 @@ public class CampusImpl implements CampusInterface {
         for (int rn : roomNumbers) {
             HashMap<String, RoomRecord> timeSlots = new HashMap<>();
             for(String ts : times) {
-                timeSlots.put(ts, new RoomRecord(ts, rn, date, "RR" + CentralRepository.getRRIDCount()));
+                timeSlots.put(ts, new RoomRecord(ts, rn, date, "RR" + CentralRepository.getRRIDCount(), serverName));
                 CentralRepository.incrementRRIDCount();
             }
             rooms.put(rn, timeSlots);
