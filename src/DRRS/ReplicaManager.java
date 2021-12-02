@@ -22,15 +22,13 @@ public class ReplicaManager {
 	private final Thread replicaThread;
 	private final Thread queueThread;
 	private int lastProcessedSequenceNumber = 0;
-	private final InetAddress managerAddress;
 	private final JSONObject getDataObject;
 	private final JSONParser parser = new JSONParser();
 	private final Random randomizer = new Random();
 	
-	public ReplicaManager(int replicaNumber, Replica replica) throws UnknownHostException {
+	public ReplicaManager(int replicaNumber, Replica replica) {
 		this.replicaNumber = replicaNumber;
 		this.replicaManagerPorts = Config.Ports.REPLICA_MANAGER_PORTS_MAP.get(replicaNumber);
-		managerAddress = InetAddress.getByName(replicaManagerPorts.getRmIpAddress());
 		
 		getDataObject = new JSONObject();
 		getDataObject.put(MessageKeys.COMMAND_TYPE, Config.GET_DATA);
@@ -46,8 +44,7 @@ public class ReplicaManager {
 	class ManagerThread implements Runnable {
 		@Override
 		public void run() {
-			try (DatagramSocket socket = new DatagramSocket(replicaManagerPorts.getRmPort(), managerAddress)) {
-				socket.setSoTimeout(1000);
+			try (DatagramSocket socket = new DatagramSocket(replicaManagerPorts.getRmPort())) {
 				while(true) {
 					byte[] receivedBytes = new byte[1024];
 					DatagramPacket receivedPacket = new DatagramPacket(receivedBytes, receivedBytes.length);
@@ -68,7 +65,7 @@ public class ReplicaManager {
 			jsonAck.put(MessageKeys.COMMAND_TYPE, Config.ACK);
 			byte[] ack = jsonAck.toString().getBytes();
 			try (DatagramSocket socket = new DatagramSocket()) {
-				DatagramPacket packet = new DatagramPacket(ack, ack.length, InetAddress.getByName(Config.IPAddresses.SEQUENCER), Config.PortNumbers.FE_SEQ);
+				DatagramPacket packet = new DatagramPacket(ack, ack.length, InetAddress.getLocalHost(), Config.PortNumbers.FE_SEQ);
 				socket.send(packet);
 			} catch(IOException e) {
 				e.printStackTrace();
@@ -129,7 +126,7 @@ public class ReplicaManager {
 						
 						try (DatagramSocket socket = new DatagramSocket()) {
 							byte[] dataSent = returnObject.toJSONString().getBytes();
-							socket.send(new DatagramPacket(dataSent, dataSent.length,  InetAddress.getByName(Config.IPAddresses.FRONT_END), Config.PortNumbers.RE_FE));
+							socket.send(new DatagramPacket(dataSent, dataSent.length, InetAddress.getLocalHost(), Config.PortNumbers.RE_FE));
 						} catch(IOException e) {
 							e.printStackTrace();
 						}
@@ -193,7 +190,7 @@ public class ReplicaManager {
 			byte[] getDataBytes = getDataObject.toString().getBytes();
 			
 			DatagramPacket packet = new DatagramPacket(
-					getDataBytes, getDataBytes.length, InetAddress.getByName(otherPorts.getRmIpAddress()), otherPorts.getRmPort()
+					getDataBytes, getDataBytes.length, otherPorts.getRmPort()
 			);
 			socket.send(packet);
 			
