@@ -10,11 +10,7 @@ import java.util.HashMap;
 public class Replica1 extends Replica {
 
     private static final ReplicaPorts ports = Config.Ports.REPLICA_MANAGER_PORTS_MAP.get(1);
-
-    Thread dvlThread;
-    Thread kklThread;
-    Thread wstThread;
-
+    
     public Replica1() {
         super(
                 new CampusServer("DVL", ports.getDvlPort(),
