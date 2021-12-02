@@ -32,7 +32,7 @@ public class ReplicaManager {
 	
 	public ReplicaManager(int replicaNumber, Replica replica) throws UnknownHostException {
 		this.replicaManagerPorts = Config.Ports.REPLICA_MANAGER_PORTS_MAP.get(replicaNumber);
-		for (int i = 1; i < 4; i++) {
+		for (int i = 1; i <= 4; i++) {
 			if (otherPorts1 == null && i != replicaNumber) {
 				otherPorts1 = Config.Ports.REPLICA_MANAGER_PORTS_MAP.get(i);
 			} else if (otherPorts2 == null && i != replicaNumber) {
