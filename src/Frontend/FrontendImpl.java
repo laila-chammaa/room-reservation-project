@@ -239,7 +239,7 @@ public class FrontendImpl implements FrontendInterface {
                 receiverSocket = new DatagramSocket(Config.PortNumbers.SEQ_FE);
 
                 byte[] messageBuffer = message.getSendData().toString().getBytes();
-                InetAddress host = InetAddress.getLocalHost();
+                InetAddress host = InetAddress.getByName(Config.IPAddresses.SEQUENCER);
                 DatagramPacket request = new DatagramPacket(messageBuffer, messageBuffer.length, host, Config.PortNumbers.FE_SEQ);
 
                 System.out.println("Sending message to sequencer: " + message.getSendData().toJSONString());
