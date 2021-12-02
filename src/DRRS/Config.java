@@ -4,7 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class Config {
-    
+
     public static class Ports {
 
         public static final int REPLICA_PORT_1 = 4001;
@@ -38,7 +38,7 @@ public class Config {
         public static final String REPLICA4 = "132.205.64.144";
         public static final String SEQUENCER = "132.205.64.255";
         public static final String FRONT_END = "132.205.64.142";
-        public static final String MULTICAST = "230.0.0.0";
+        public static final String MULTICAST_ADR = "239.1.2.3";
     }
 
     public enum StatusCode {
@@ -53,6 +53,7 @@ public class Config {
     }
 
     public static final int MESSAGE_DELAY = 3;
+    public static final int DELIVERY_QUEUE_MAX_SIZE = 1000;
 
     public static final String CREATE_ROOM = "create_record", CANCEL_BOOKING = "cancel_booking",
             GET_TIMESLOTS = "get_timeslots", DELETE_ROOM = "delete_room", CHANGE_RESERVATION = "change_reservation",

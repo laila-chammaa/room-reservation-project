@@ -1,12 +1,14 @@
 package Client;
 
 import Client.com.net.java.dev.jaxb.array.StringArray;
-import com.sun.tools.javac.util.List;
+
+import java.util.Arrays;
+import java.util.List;
 
 public class AdminDriver {
     public static void main(String[] args) {
         StringArray listOfTimeSlots = new StringArray();
-        listOfTimeSlots.getItem().addAll(List.of("19:00-20:00", "12:00-13:00", "15:00-16:00"));
+        listOfTimeSlots.getItem().addAll(Arrays.asList("19:00-20:00", "12:00-13:00", "15:00-16:00"));
         StringArray listOfTimeSlots2 = new StringArray();
         listOfTimeSlots2.getItem().add("1:00-2:00");
         StringArray listOfTimeSlots3 = new StringArray();
