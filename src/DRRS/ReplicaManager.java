@@ -64,6 +64,7 @@ public class ReplicaManager {
 		private void sendAcknowledgement(int sequenceNumber) {
 			JSONObject jsonAck = new JSONObject();
 			jsonAck.put(MessageKeys.SEQ_NUM, sequenceNumber);
+			jsonAck.put(MessageKeys.RM_PORT_NUMBER, replicaManagerPorts.getRmPort());
 			jsonAck.put(MessageKeys.COMMAND_TYPE, Config.ACK);
 			byte[] ack = jsonAck.toString().getBytes();
 			try (DatagramSocket socket = new DatagramSocket()) {
@@ -114,6 +115,7 @@ public class ReplicaManager {
 						
 						lastProcessedSequenceNumber = sequenceNumber;
 						
+						String messageId = currentRequest.get(MessageKeys.MESSAGE_ID).toString();
 						String message = replica.executeRequest(currentRequest);
 						Config.StatusCode statusCode = Config.StatusCode.SUCCESS;
 
@@ -126,6 +128,7 @@ public class ReplicaManager {
 						returnObject.put(MessageKeys.RM_PORT_NUMBER, replicaManagerPorts.getRmPort());
 						returnObject.put(MessageKeys.STATUS_CODE, statusCode.toString());
 						returnObject.put(MessageKeys.MESSAGE, message);
+						returnObject.put(MessageKeys.MESSAGE_ID, messageId);
 						
 						try (DatagramSocket socket = new DatagramSocket()) {
 							byte[] dataSent = returnObject.toJSONString().getBytes();
@@ -159,8 +162,10 @@ public class ReplicaManager {
 				String errorType = requestData.get(MessageKeys.FAILURE_TYPE).toString();
 				boolean isCrashRequest = false;
 				if (errorType.equals(Config.Failure.BYZANTINE.toString())) {
+					System.out.println("Replica " + replicaNumber + ": incrementing failure count.");
 					failureCount += 1;
 				} else if (errorType.equals(Config.Failure.PROCESS_CRASH.toString())) {
+					System.out.println("Replica " + replicaNumber + ": process crash detected.");
 					isCrashRequest = true;
 				}
 				
@@ -222,9 +227,11 @@ public class ReplicaManager {
 			e.printStackTrace();
 		}
 		
+		this.replicaThread.join();
 		this.replica.stopServers();
 		this.replica.startServers();
 		this.replica.setCurrentData(currentData);
+		this.replicaThread.start();
 		failureCount = 0;
 	}
 }

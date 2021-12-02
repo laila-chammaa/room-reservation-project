@@ -85,7 +85,7 @@ public abstract class Replica {
 	 */
 	public String executeRequest(JSONObject request) {
 		String command = request.get(MessageKeys.COMMAND_TYPE).toString();
-		String campusName = request.get(MessageKeys.CAMPUS).toString();
+		String campusName;
 		int roomNumber;
 		String adminId;
 		String studentId;
@@ -100,15 +100,16 @@ public abstract class Replica {
 					adminId = request.get(MessageKeys.ADMIN_ID).toString();
 					roomNumber = Integer.parseInt(request.get(MessageKeys.ROOM_NUM).toString());
 					date = request.get(MessageKeys.DATE).toString();
-					timeSlots = (String[]) request.get(MessageKeys.TIMESLOTS);
+					timeSlots = buildStringArray((JSONArray) request.get(MessageKeys.TIMESLOTS));
 					return selectCampus(adminId.substring(0,3)).createRoom(adminId, roomNumber, date, timeSlots);
 				case Config.DELETE_ROOM:
 					adminId = request.get(MessageKeys.ADMIN_ID).toString();
 					roomNumber = Integer.parseInt(request.get(MessageKeys.ROOM_NUM).toString());
 					date = request.get(MessageKeys.DATE).toString();
-					timeSlots = (String[]) request.get(MessageKeys.TIMESLOTS);
+					timeSlots = buildStringArray((JSONArray) request.get(MessageKeys.TIMESLOTS));
 					return selectCampus(adminId.substring(0,3)).deleteRoom(adminId, roomNumber, date, timeSlots);
 				case Config.BOOK_ROOM:
+					campusName = request.get(MessageKeys.CAMPUS).toString();
 					studentId = request.get(MessageKeys.STUDENT_ID).toString();
 					roomNumber = Integer.parseInt(request.get(MessageKeys.ROOM_NUM).toString());
 					date = request.get(MessageKeys.DATE).toString();
@@ -123,6 +124,7 @@ public abstract class Replica {
 					bookingId = request.get(MessageKeys.BOOKING_ID).toString();
 					return selectCampus(studentId.substring(0,3)).cancelBooking(studentId, bookingId);
 				case Config.CHANGE_RESERVATION:
+					campusName = request.get(MessageKeys.CAMPUS).toString();
 					studentId = request.get(MessageKeys.STUDENT_ID).toString();
 					bookingId = request.get(MessageKeys.BOOKING_ID).toString();
 					roomNumber = Integer.parseInt(request.get(MessageKeys.ROOM_NUM).toString());
@@ -136,6 +138,14 @@ public abstract class Replica {
 		}
 
 		return null;
+	}
+	
+	private String[] buildStringArray(JSONArray jsonArray) {
+		String[] timeSlots = new String[jsonArray.size()];
+		for (int i = 0; i < jsonArray.size(); i++) {
+			timeSlots[i] = (String) jsonArray.get(i);
+		}
+		return timeSlots;
 	}
 
 	private CampusServerInterface selectCampus(String campusName) {

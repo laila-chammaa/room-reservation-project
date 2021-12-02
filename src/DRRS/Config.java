@@ -33,11 +33,11 @@ public class Config {
     public static class IPAddresses
     {
         public static final String REPLICA1 = "127.0.0.1";
-        public static final String REPLICA2 = "127.0.0.1";
-        public static final String REPLICA3 = "127.0.0.1";
-        public static final String REPLICA4 = "127.0.0.1";
-        public static final String SEQUENCER = "127.0.0.1";
-        public static final String FRONT_END = "127.0.0.1";
+        public static final String REPLICA2 = "127.0.0.2";
+        public static final String REPLICA3 = "127.0.0.3";
+        public static final String REPLICA4 = "127.0.0.4";
+        public static final String SEQUENCER = "127.0.0.5";
+        public static final String FRONT_END = "127.0.0.6";
         public static final String MULTICAST_ADR = "239.1.2.3";
     }
 

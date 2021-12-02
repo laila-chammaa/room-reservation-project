@@ -22,7 +22,7 @@ public class Sequencer extends Thread{
 
     private final InetAddress multicastGroupAddress;
     private final AtomicLong sequenceNumber;
-    private final ConcurrentHashMap<String, AtomicLong> lastAckedSeqNums;
+    private final ConcurrentHashMap<Long, AtomicLong> lastAckedSeqNums;
 
     ConcurrentLinkedDeque<JSONObject> deliveryQueue;
 
@@ -59,7 +59,6 @@ public class Sequencer extends Thread{
         System.out.println("Listening for messages.");
         DatagramPacket packet = new DatagramPacket(buf, buf.length);
         socket.receive(packet);
-        System.out.println("Received");
 
         InetAddress address = packet.getAddress();
         int port = packet.getPort();
@@ -75,10 +74,10 @@ public class Sequencer extends Thread{
         String messageType = (String) (jsonObject.get(MessageKeys.COMMAND_TYPE));
         if (messageType.equals(Config.ACK)) {
             // Received an ack from a member
-            // TODO: The last sequence number acked by a member should be in this message
-            Object lastSeqNum = jsonObject.get("seqNum");
+            long portNb = (Long) jsonObject.get(MessageKeys.RM_PORT_NUMBER);
+            Object lastSeqNum = jsonObject.get(MessageKeys.SEQ_NUM);
             if (lastSeqNum instanceof Long) {
-                processAck((Long) lastSeqNum, address.toString());
+                processAck((Long) lastSeqNum, portNb);
             }
             // If the sequence is in the sync phase, no further messages are accepted from the FE until the history buffer is clear
         } else if (running) {
@@ -105,7 +104,7 @@ public class Sequencer extends Thread{
 
                 // increment sequence number atomically and append it to the message
                 long seqNum = sequenceNumber.incrementAndGet();
-                jsonObject.put("seq", seqNum);
+                jsonObject.put(MessageKeys.SEQ_NUM, seqNum);
 
                 // Store message in the history buffer
                 deliveryQueue.add(jsonObject);
@@ -123,19 +122,17 @@ public class Sequencer extends Thread{
 
     void multicastMessage(JSONObject msg) throws IOException {
         String msgJson = msg.toJSONString();
-        DatagramPacket packetToSend = new DatagramPacket(msgJson.getBytes(), msgJson.length(), multicastGroupAddress, SEQ_FE);
+        DatagramPacket packetToSend = new DatagramPacket(msgJson.getBytes(), msgJson.length(), multicastGroupAddress, SEQ_RE);
         multicastSocket.send(packetToSend);
-
-        // TODO: in Replica manager, make sure the sequencer is sending messages in sequential order
     }
 
-    void processAck(long ackSeqNum, String memberName) {
-        if (!lastAckedSeqNums.containsKey(memberName)) {
-            System.out.println("Replica " + memberName + " new last Acked SeqNum: " + ackSeqNum);
-            lastAckedSeqNums.put(memberName, new AtomicLong(ackSeqNum));
+    void processAck(long ackSeqNum, long portNb) {
+        if (!lastAckedSeqNums.containsKey(portNb)) {
+            System.out.println("Replica " + portNb + " new last Acked SeqNum: " + ackSeqNum);
+            lastAckedSeqNums.put(portNb, new AtomicLong(ackSeqNum));
         } else {
-            System.out.println("Replica " + memberName + " new last Acked SeqNum: " + ackSeqNum);
-            lastAckedSeqNums.get(memberName).set(ackSeqNum);
+            System.out.println("Replica " + portNb + " new last Acked SeqNum: " + ackSeqNum);
+            lastAckedSeqNums.get(portNb).set(ackSeqNum);
 
             // Check if history can be cleaned, i.e. whether any messages in the queue have been acked by every replica
             long minSeqNum = lastAckedSeqNums.values().stream()
@@ -145,7 +142,7 @@ public class Sequencer extends Thread{
             // Remove elements from the head of the queue (oldest elements in the history first), until the sequence ID
             // encountered is larger than the minimum sequence number across the replica
             for (JSONObject jsonObject : deliveryQueue) {
-                if ((Integer) jsonObject.get("seq") > minSeqNum) {
+                if ((Long) jsonObject.get(MessageKeys.SEQ_NUM) > minSeqNum) {
                     break;
                 } else {
                     deliveryQueue.removeFirst();
