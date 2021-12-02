@@ -1,5 +1,6 @@
 package Replicas.Replica2;
 
+import DRRS.Config;
 import DRRS.MessageKeys;
 import Replicas.CampusServerInterface;
 import org.json.simple.JSONArray;
@@ -507,7 +508,7 @@ public class RoomRecordCampus implements CampusServerInterface, Runnable {
 		String replyMessage;
 		synchronized (RoomRecordCampus.class) {
 			try (DatagramSocket socket = new DatagramSocket()) {
-				DatagramPacket request = new DatagramPacket(requestMessage, requestMessage.length, InetAddress.getLocalHost(), port);
+				DatagramPacket request = new DatagramPacket(requestMessage, requestMessage.length, InetAddress.getByName(Config.IPAddresses.REPLICA2), port);
 				socket.send(request);
 				byte[] buffer = new byte[64];
 				DatagramPacket reply = new DatagramPacket(buffer, buffer.length);
@@ -527,7 +528,7 @@ public class RoomRecordCampus implements CampusServerInterface, Runnable {
 		String replyMessage;
 		synchronized (RoomRecordCampus.class) {
 			try (DatagramSocket socket = new DatagramSocket()) {
-				DatagramPacket request = new DatagramPacket(requestMessage, requestMessage.length, InetAddress.getLocalHost(), port);
+				DatagramPacket request = new DatagramPacket(requestMessage, requestMessage.length, InetAddress.getByName(Config.IPAddresses.REPLICA2), port);
 				socket.send(request);
 				byte[] buffer = new byte[64];
 				DatagramPacket reply = new DatagramPacket(buffer, buffer.length);
@@ -548,7 +549,7 @@ public class RoomRecordCampus implements CampusServerInterface, Runnable {
 		String replyMessage;
 		synchronized (RoomRecordCampus.class) {
 			try (DatagramSocket socket = new DatagramSocket()) {
-				DatagramPacket request = new DatagramPacket(requestBytes, requestBytes.length, InetAddress.getLocalHost(), port);
+				DatagramPacket request = new DatagramPacket(requestBytes, requestBytes.length, InetAddress.getByName(Config.IPAddresses.REPLICA2), port);
 				socket.send(request);
 				byte[] buffer = new byte[128];
 				DatagramPacket reply = new DatagramPacket(buffer, buffer.length);
@@ -570,7 +571,7 @@ public class RoomRecordCampus implements CampusServerInterface, Runnable {
 		String replyMessage;
 		synchronized (RoomRecordCampus.class) {
 			try (DatagramSocket socket = new DatagramSocket()) {
-				DatagramPacket request = new DatagramPacket(requestBytes, requestBytes.length, InetAddress.getLocalHost(), port);
+				DatagramPacket request = new DatagramPacket(requestBytes, requestBytes.length, InetAddress.getByName(Config.IPAddresses.REPLICA2), port);
 				socket.send(request);
 				byte[] buffer = new byte[128];
 				DatagramPacket reply = new DatagramPacket(buffer, buffer.length);
@@ -591,7 +592,7 @@ public class RoomRecordCampus implements CampusServerInterface, Runnable {
 		String replyMessage;
 		synchronized (RoomRecordCampus.class) {
 			try (DatagramSocket socket = new DatagramSocket()) {
-				DatagramPacket request = new DatagramPacket(requestBytes, requestBytes.length, InetAddress.getLocalHost(), port);
+				DatagramPacket request = new DatagramPacket(requestBytes, requestBytes.length, InetAddress.getByName(Config.IPAddresses.REPLICA2), port);
 				socket.send(request);
 				byte[] buffer = new byte[64];
 				DatagramPacket reply = new DatagramPacket(buffer, buffer.length);
