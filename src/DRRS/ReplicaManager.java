@@ -105,7 +105,7 @@ public class ReplicaManager {
 							currentRequest = requestQueue.remove();
 							sequenceNumber = Integer.parseInt(currentRequest.get(MessageKeys.SEQ_NUM).toString());
 							
-							System.out.println("\nSkipping already processed request" + sequenceNumber);
+							System.out.println("\nSkipping already processed request " + sequenceNumber);
 						}
 						
 						lastProcessedSequenceNumber = sequenceNumber;
@@ -188,10 +188,10 @@ public class ReplicaManager {
 		try {
 			byte[] getDataBytes = getDataObject.toString().getBytes();
 			
-			DatagramPacket datagramPacket1 = new DatagramPacket(
+			DatagramPacket packet = new DatagramPacket(
 					getDataBytes, getDataBytes.length, InetAddress.getByName(otherPorts.getRmIpAddress()), otherPorts.getRmPort()
 			);
-			socket.send(datagramPacket1);
+			socket.send(packet);
 			
 			byte[] receiveDataBytes = new byte[1024];
 			DatagramPacket receivedPacket = new DatagramPacket(receiveDataBytes, receiveDataBytes.length);
