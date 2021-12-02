@@ -1,5 +1,6 @@
 package Replicas.Replica3.campus;
 
+import java.text.MessageFormat;
 import java.util.Locale;
 import java.util.UUID;
 
@@ -9,13 +10,17 @@ public class RoomRecord {
     private String bookedBy;
     private int roomNumber;
     private String date;
+    private String bookingID;
+    private String campus;
 
-    public RoomRecord(String timeSlot, int roomNumber, String date, String RecordID) {
+    public RoomRecord(String timeSlot, int roomNumber, String date, String RecordID, String campus) {
         this.roomNumber = roomNumber;
         this.timeSlot = timeSlot;
-        this.bookedBy = null;
+        this.bookedBy = "";
         this.date = date;
         this.RecordID = RecordID;
+        this.bookingID = "";
+        this.campus = campus;
     };
 
     public String getStatus() {
@@ -32,7 +37,8 @@ public class RoomRecord {
 
     public String book(String studentID) {
         this.bookedBy = studentID;
-        return UUID.randomUUID().toString().replaceAll("-", "".toUpperCase(Locale.ROOT));
+        this.bookingID = MessageFormat.format("{0}-{1}-{2}-{3}-{4}", bookedBy, campus, roomNumber, date, timeSlot);
+        return bookingID;
     }
 
     public void cancelBooking() {
@@ -49,6 +55,18 @@ public class RoomRecord {
 
     public String getTimeSlot() {
         return this.timeSlot;
+    }
+
+    public String getBookingID() {
+        return this.bookingID;
+    }
+
+    public void setBookingID(String bookingID) {
+        this.bookingID = bookingID;
+    }
+
+    public void setBookedBy(String bookedBy) {
+        this.bookedBy = bookedBy;
     }
 
     @Override
