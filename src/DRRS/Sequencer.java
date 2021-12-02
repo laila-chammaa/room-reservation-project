@@ -64,6 +64,8 @@ public class Sequencer extends Thread{
         int port = packet.getPort();
 
         String received = new String(packet.getData(), 0, packet.getLength());
+        
+        System.out.println("Received: " + received);
 
         // Process input -- this is a Json Object
         JSONObject jsonObject = (JSONObject) (JSONValue.parse(received.trim()));
@@ -153,7 +155,10 @@ public class Sequencer extends Thread{
     }
 
     void sendAckToFE(long ackSeqNum, InetAddress address, int port) {
-        byte[] ackData = Long.toString(ackSeqNum).getBytes(StandardCharsets.UTF_8);
+        JSONObject ackObject = new JSONObject();
+        ackObject.put(MessageKeys.COMMAND_TYPE, Config.ACK);
+        ackObject.put(MessageKeys.SEQ_NUM, ackSeqNum);
+        byte[] ackData = ackObject.toString().getBytes();
         DatagramPacket packet = new DatagramPacket(ackData, ackData.length, address, port);
         try {
             System.out.println("Sending out an ack to " + address.getHostAddress() + ":" + port + " with seqNum " + ackSeqNum);

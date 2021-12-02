@@ -2,6 +2,7 @@ package Frontend;
 
 import DRRS.Config;
 import DRRS.MessageKeys;
+import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
@@ -9,6 +10,8 @@ import org.json.simple.parser.ParseException;
 import javax.jws.WebService;
 import java.io.IOException;
 import java.net.*;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Optional;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -79,7 +82,7 @@ public class FrontendImpl implements FrontendInterface {
         payload.put(MessageKeys.ADMIN_ID, adminID);
         payload.put(MessageKeys.ROOM_NUM, roomNumber);
         payload.put(MessageKeys.DATE, date);
-        payload.put(MessageKeys.TIMESLOTS, listOfTimeSlots);
+        payload.put(MessageKeys.TIMESLOTS, buildTimeSlotArray(listOfTimeSlots));
 
         try {
             message = createMessage(payload);
@@ -100,7 +103,7 @@ public class FrontendImpl implements FrontendInterface {
         payload.put(MessageKeys.ADMIN_ID, adminID);
         payload.put(MessageKeys.ROOM_NUM, roomNumber);
         payload.put(MessageKeys.DATE, date);
-        payload.put(MessageKeys.TIMESLOTS, listOfTimeSlots);
+        payload.put(MessageKeys.TIMESLOTS, buildTimeSlotArray(listOfTimeSlots));
 
         try {
             message = createMessage(payload);
@@ -197,6 +200,13 @@ public class FrontendImpl implements FrontendInterface {
 
         return makeRequest(message);
     }
+    
+    private JSONArray buildTimeSlotArray(String[] timeSlots) {
+        JSONArray timeslotArray = new JSONArray();
+        Collections.addAll(timeslotArray, timeSlots);
+        
+        return timeslotArray;
+    }
 
     private String validateAdmin(String userID) {
         char userType = userID.charAt(USER_TYPE_POS);
@@ -230,7 +240,7 @@ public class FrontendImpl implements FrontendInterface {
                 receiverSocket = new DatagramSocket(Config.PortNumbers.SEQ_FE);
 
                 byte[] messageBuffer = message.getSendData().toString().getBytes();
-                InetAddress host = InetAddress.getByName(Config.IPAddresses.SEQUENCER);
+                InetAddress host = InetAddress.getLocalHost();
                 DatagramPacket request = new DatagramPacket(messageBuffer, messageBuffer.length, host, Config.PortNumbers.FE_SEQ);
 
                 System.out.println("Sending message to sequencer: " + message.getSendData().toJSONString());
@@ -526,8 +536,8 @@ public class FrontendImpl implements FrontendInterface {
     private void notifyReplicaOfProcessCrash(int port) {
         DatagramSocket socket = null;
         JSONObject payload = new JSONObject();
-        int[] ports = new int[]{Config.Ports.REPLICA_PORT_1, Config.Ports.REPLICA_PORT_2, Config.Ports.REPLICA_PORT_3};
-        String[] hosts = new String[]{Config.IPAddresses.REPLICA1, Config.IPAddresses.REPLICA2, Config.IPAddresses.REPLICA3};
+        int[] ports = new int[]{Config.Ports.REPLICA_PORT_1, Config.Ports.REPLICA_PORT_2, Config.Ports.REPLICA_PORT_3, Config.Ports.REPLICA_PORT_4};
+        String[] hosts = new String[]{Config.IPAddresses.REPLICA1, Config.IPAddresses.REPLICA2, Config.IPAddresses.REPLICA3, Config.IPAddresses.REPLICA4};
 
         payload.put(MessageKeys.COMMAND_TYPE, Config.REPORT_FAILURE);
         payload.put(MessageKeys.FAILURE_TYPE, Config.Failure.PROCESS_CRASH.toString());

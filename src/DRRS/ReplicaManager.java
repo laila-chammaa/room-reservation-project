@@ -47,7 +47,6 @@ public class ReplicaManager {
 		@Override
 		public void run() {
 			try (DatagramSocket socket = new DatagramSocket(replicaManagerPorts.getRmPort(), managerAddress)) {
-				socket.setSoTimeout(1000);
 				while(true) {
 					byte[] receivedBytes = new byte[1024];
 					DatagramPacket receivedPacket = new DatagramPacket(receivedBytes, receivedBytes.length);
@@ -68,7 +67,7 @@ public class ReplicaManager {
 			jsonAck.put(MessageKeys.COMMAND_TYPE, Config.ACK);
 			byte[] ack = jsonAck.toString().getBytes();
 			try (DatagramSocket socket = new DatagramSocket()) {
-				DatagramPacket packet = new DatagramPacket(ack, ack.length, InetAddress.getByName(Config.IPAddresses.SEQUENCER), Config.PortNumbers.FE_SEQ);
+				DatagramPacket packet = new DatagramPacket(ack, ack.length, InetAddress.getLocalHost(), Config.PortNumbers.FE_SEQ);
 				socket.send(packet);
 			} catch(IOException e) {
 				e.printStackTrace();
@@ -129,7 +128,7 @@ public class ReplicaManager {
 						
 						try (DatagramSocket socket = new DatagramSocket()) {
 							byte[] dataSent = returnObject.toJSONString().getBytes();
-							socket.send(new DatagramPacket(dataSent, dataSent.length,  InetAddress.getByName(Config.IPAddresses.FRONT_END), Config.PortNumbers.RE_FE));
+							socket.send(new DatagramPacket(dataSent, dataSent.length, InetAddress.getLocalHost(), Config.PortNumbers.RE_FE));
 						} catch(IOException e) {
 							e.printStackTrace();
 						}
@@ -212,8 +211,6 @@ public class ReplicaManager {
 		JSONObject currentData = null;
 		
 		try(DatagramSocket socket = new DatagramSocket()) {
-			socket.setSoTimeout(1000);
-			
 			int pickedReplicaNb;
 			while(currentData == null) {
 				// Get valid random replica

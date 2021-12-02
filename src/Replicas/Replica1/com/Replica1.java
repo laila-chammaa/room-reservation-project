@@ -19,13 +19,13 @@ public class Replica1 extends Replica {
                             put("KKL", "localhost:" + ports.getKklPort());
                             put("WST", "localhost:" + ports.getWstPort());
                         }}),
-                new CampusServer("KKL", ports.getDvlPort(),
+                new CampusServer("KKL", ports.getKklPort(),
                         new HashMap<String, String>() {{
                             put("DVL", "localhost:" + ports.getDvlPort());
                             put("KKL", "localhost:" + ports.getKklPort());
                             put("WST", "localhost:" + ports.getWstPort());
                         }}),
-                new CampusServer("WST", ports.getDvlPort(),
+                new CampusServer("WST", ports.getWstPort(),
                         new HashMap<String, String>() {{
                             put("DVL", "localhost:" + ports.getDvlPort());
                             put("KKL", "localhost:" + ports.getKklPort());
