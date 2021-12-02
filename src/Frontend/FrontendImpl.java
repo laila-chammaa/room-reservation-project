@@ -519,7 +519,6 @@ public class FrontendImpl implements FrontendInterface {
     private void notifyReplicaOfProcessCrash(int port) {
         DatagramSocket socket = null;
         JSONObject payload = new JSONObject();
-        String[] hosts = new String[]{Config.IPAddresses.REPLICA1, Config.IPAddresses.REPLICA2, Config.IPAddresses.REPLICA3, Config.IPAddresses.REPLICA4};
 
         payload.put(MessageKeys.COMMAND_TYPE, Config.REPORT_FAILURE);
         payload.put(MessageKeys.FAILURE_TYPE, Config.Failure.PROCESS_CRASH.toString());
