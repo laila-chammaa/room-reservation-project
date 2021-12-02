@@ -13,7 +13,7 @@ import java.net.URL;
  * Generated source version: 2.2
  * 
  */
-@WebServiceClient(name = "FrontendImplService", targetNamespace = "http://Frontend/", wsdlLocation = "file:/Users/t_chaml/room-reservation-project/src/Client/com/campus.wsdl")
+@WebServiceClient(name = "FrontendImplService", targetNamespace = "http://Frontend/", wsdlLocation = "file:src/Client/com/campus.wsdl")
 public class FrontendImplService
     extends Service
 {
@@ -26,7 +26,7 @@ public class FrontendImplService
         URL url = null;
         WebServiceException e = null;
         try {
-            url = new URL("file:/Users/t_chaml/room-reservation-project/src/Client/com/campus.wsdl");
+            url = new URL("file:src/Client/com/campus.wsdl");
         } catch (MalformedURLException ex) {
             e = new WebServiceException(ex);
         }
