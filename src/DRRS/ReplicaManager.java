@@ -64,6 +64,7 @@ public class ReplicaManager {
 		private void sendAcknowledgement(int sequenceNumber) {
 			JSONObject jsonAck = new JSONObject();
 			jsonAck.put(MessageKeys.SEQ_NUM, sequenceNumber);
+			jsonAck.put(MessageKeys.RM_PORT_NUMBER, replicaManagerPorts.getRmPort());
 			jsonAck.put(MessageKeys.COMMAND_TYPE, Config.ACK);
 			byte[] ack = jsonAck.toString().getBytes();
 			try (DatagramSocket socket = new DatagramSocket()) {
@@ -158,8 +159,10 @@ public class ReplicaManager {
 				String errorType = requestData.get(MessageKeys.FAILURE_TYPE).toString();
 				boolean isCrashRequest = false;
 				if (errorType.equals(Config.Failure.BYZANTINE.toString())) {
+					System.out.println("Replica " + replicaNumber + ": incrementing failure count.");
 					failureCount += 1;
 				} else if (errorType.equals(Config.Failure.PROCESS_CRASH.toString())) {
+					System.out.println("Replica " + replicaNumber + ": process crash detected.");
 					isCrashRequest = true;
 				}
 				
@@ -221,9 +224,11 @@ public class ReplicaManager {
 			e.printStackTrace();
 		}
 		
+		this.replicaThread.join();
 		this.replica.stopServers();
 		this.replica.startServers();
 		this.replica.setCurrentData(currentData);
+		this.replicaThread.start();
 		failureCount = 0;
 	}
 }
