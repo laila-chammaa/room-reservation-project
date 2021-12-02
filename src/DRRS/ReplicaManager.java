@@ -22,13 +22,15 @@ public class ReplicaManager {
 	private final Thread replicaThread;
 	private final Thread queueThread;
 	private int lastProcessedSequenceNumber = 0;
+	private final InetAddress managerAddress;
 	private final JSONObject getDataObject;
 	private final JSONParser parser = new JSONParser();
 	private final Random randomizer = new Random();
 	
-	public ReplicaManager(int replicaNumber, Replica replica) {
+	public ReplicaManager(int replicaNumber, Replica replica) throws UnknownHostException {
 		this.replicaNumber = replicaNumber;
 		this.replicaManagerPorts = Config.Ports.REPLICA_MANAGER_PORTS_MAP.get(replicaNumber);
+		managerAddress = InetAddress.getByName(replicaManagerPorts.getRmIpAddress());
 		
 		getDataObject = new JSONObject();
 		getDataObject.put(MessageKeys.COMMAND_TYPE, Config.GET_DATA);
@@ -44,7 +46,7 @@ public class ReplicaManager {
 	class ManagerThread implements Runnable {
 		@Override
 		public void run() {
-			try (DatagramSocket socket = new DatagramSocket(replicaManagerPorts.getRmPort())) {
+			try (DatagramSocket socket = new DatagramSocket(replicaManagerPorts.getRmPort(), managerAddress)) {
 				while(true) {
 					byte[] receivedBytes = new byte[1024];
 					DatagramPacket receivedPacket = new DatagramPacket(receivedBytes, receivedBytes.length);
@@ -190,7 +192,7 @@ public class ReplicaManager {
 			byte[] getDataBytes = getDataObject.toString().getBytes();
 			
 			DatagramPacket packet = new DatagramPacket(
-					getDataBytes, getDataBytes.length, InetAddress.getLocalHost(), otherPorts.getRmPort()
+					getDataBytes, getDataBytes.length, InetAddress.getByName(otherPorts.getRmIpAddress()), otherPorts.getRmPort()
 			);
 			socket.send(packet);
 			
@@ -209,8 +211,6 @@ public class ReplicaManager {
 		JSONObject currentData = null;
 		
 		try(DatagramSocket socket = new DatagramSocket()) {
-			socket.setSoTimeout(1000);
-			
 			int pickedReplicaNb;
 			while(currentData == null) {
 				// Get valid random replica

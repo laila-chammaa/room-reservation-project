@@ -12,10 +12,10 @@ public class Config {
         public static final int REPLICA_PORT_3 = 4003;
         public static final int REPLICA_PORT_4 = 4004;
         
-        private static final ReplicaPorts ReplicaManager1 = new ReplicaPorts(REPLICA_PORT_1, 5001, 5002, 5003);
-        private static final ReplicaPorts ReplicaManager2 = new ReplicaPorts(REPLICA_PORT_2, 5004, 5005, 5006);
-        private static final ReplicaPorts ReplicaManager3 = new ReplicaPorts(REPLICA_PORT_3, 5007, 5008, 5009);
-        private static final ReplicaPorts ReplicaManager4 = new ReplicaPorts(REPLICA_PORT_4, 5010, 5011, 5012);
+        private static final ReplicaPorts ReplicaManager1 = new ReplicaPorts(REPLICA_PORT_1, 5001, 5002, 5003, IPAddresses.REPLICA1);
+        private static final ReplicaPorts ReplicaManager2 = new ReplicaPorts(REPLICA_PORT_2, 5004, 5005, 5006, IPAddresses.REPLICA2);
+        private static final ReplicaPorts ReplicaManager3 = new ReplicaPorts(REPLICA_PORT_3, 5007, 5008, 5009, IPAddresses.REPLICA3);
+        private static final ReplicaPorts ReplicaManager4 = new ReplicaPorts(REPLICA_PORT_4, 5010, 5011, 5012, IPAddresses.REPLICA4);
         
         public static final Map<Integer, ReplicaPorts> REPLICA_MANAGER_PORTS_MAP = new HashMap<Integer, ReplicaPorts>() {{
             put(1, ReplicaManager1); put(2, ReplicaManager2); put(3, ReplicaManager3); put(4, ReplicaManager4);
@@ -32,6 +32,12 @@ public class Config {
 
     public static class IPAddresses
     {
+        public static final String REPLICA1 = "132.205.64.255";
+        public static final String REPLICA2 = "132.205.64.142";
+        public static final String REPLICA3 = "132.205.64.143";
+        public static final String REPLICA4 = "132.205.64.144";
+        public static final String SEQUENCER = "132.205.64.255";
+        public static final String FRONT_END = "132.205.64.142";
         public static final String MULTICAST_ADR = "239.1.2.3";
     }
 

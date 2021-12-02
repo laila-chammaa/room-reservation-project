@@ -240,7 +240,8 @@ public class FrontendImpl implements FrontendInterface {
                 receiverSocket = new DatagramSocket(Config.PortNumbers.SEQ_FE);
 
                 byte[] messageBuffer = message.getSendData().toString().getBytes();
-                DatagramPacket request = new DatagramPacket(messageBuffer, messageBuffer.length, InetAddress.getLocalHost(), Config.PortNumbers.FE_SEQ);
+                InetAddress host = InetAddress.getLocalHost();
+                DatagramPacket request = new DatagramPacket(messageBuffer, messageBuffer.length, host, Config.PortNumbers.FE_SEQ);
 
                 System.out.println("Sending message to sequencer: " + message.getSendData().toJSONString());
                 senderSocket.send(request);
@@ -341,7 +342,7 @@ public class FrontendImpl implements FrontendInterface {
 
                     if (incorrectMessage.isPresent()) {
                         int port = incorrectMessage.get().port;
-                        notifyReplicaOfByzantineFailure(port);
+                        notifyReplicaOfByzantineFailure(port, getIPFromPort(port));
                         //return correct message to client
                         if (!message1.equals(incorrectMessage.get())) {
                             response = message1.message; // Response to client.
@@ -388,6 +389,22 @@ public class FrontendImpl implements FrontendInterface {
                 //TODO: throw error?
                 return Optional.empty();
             }
+        }
+
+        private String getIPFromPort(int port) {
+            
+            switch (port) {
+                case Config.Ports.REPLICA_PORT_1:
+                    return Config.IPAddresses.REPLICA1;
+                case Config.Ports.REPLICA_PORT_2:
+                    return Config.IPAddresses.REPLICA2;
+                case Config.Ports.REPLICA_PORT_3:
+                    return Config.IPAddresses.REPLICA3;
+                case Config.Ports.REPLICA_PORT_4:
+                    return Config.IPAddresses.REPLICA4;
+            }
+
+            return null;
         }
     }
 
@@ -487,7 +504,7 @@ public class FrontendImpl implements FrontendInterface {
         }
     }
 
-    private void notifyReplicaOfByzantineFailure(int port) {
+    private void notifyReplicaOfByzantineFailure(int port, String ipAddress) {
         DatagramSocket socket = null;
         JSONObject payload = new JSONObject();
 
@@ -498,7 +515,8 @@ public class FrontendImpl implements FrontendInterface {
         try {
             socket = new DatagramSocket();
             byte[] messageBuffer = payload.toString().getBytes();
-            DatagramPacket request = new DatagramPacket(messageBuffer, messageBuffer.length, InetAddress.getLocalHost(), port);
+            InetAddress host = InetAddress.getByName(ipAddress);
+            DatagramPacket request = new DatagramPacket(messageBuffer, messageBuffer.length, host, port);
 
             System.out.println("Sending byzantine error message to Replica Manager " + port);
             socket.send(request);
@@ -518,7 +536,8 @@ public class FrontendImpl implements FrontendInterface {
     private void notifyReplicaOfProcessCrash(int port) {
         DatagramSocket socket = null;
         JSONObject payload = new JSONObject();
-        int[] ports = new int[]{Config.Ports.REPLICA_PORT_1, Config.Ports.REPLICA_PORT_2, Config.Ports.REPLICA_PORT_3};
+        int[] ports = new int[]{Config.Ports.REPLICA_PORT_1, Config.Ports.REPLICA_PORT_2, Config.Ports.REPLICA_PORT_3, Config.Ports.REPLICA_PORT_4};
+        String[] hosts = new String[]{Config.IPAddresses.REPLICA1, Config.IPAddresses.REPLICA2, Config.IPAddresses.REPLICA3, Config.IPAddresses.REPLICA4};
 
         payload.put(MessageKeys.COMMAND_TYPE, Config.REPORT_FAILURE);
         payload.put(MessageKeys.FAILURE_TYPE, Config.Failure.PROCESS_CRASH.toString());
@@ -529,7 +548,8 @@ public class FrontendImpl implements FrontendInterface {
             byte[] messageBuffer = payload.toString().getBytes();
 
             for (int i = 0; i < 3; i++) {
-                DatagramPacket request = new DatagramPacket(messageBuffer, messageBuffer.length, InetAddress.getLocalHost(), ports[i]);
+                InetAddress host = InetAddress.getByName(hosts[i]);
+                DatagramPacket request = new DatagramPacket(messageBuffer, messageBuffer.length, host, ports[i]);
                 socket.send(request);
                 System.out.println("Sending process crash error message to Replica Manager " + ports[i] + " about Replica on port: " + port);
             }
