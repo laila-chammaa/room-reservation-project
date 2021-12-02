@@ -190,7 +190,7 @@ public class ReplicaManager {
 			byte[] getDataBytes = getDataObject.toString().getBytes();
 			
 			DatagramPacket packet = new DatagramPacket(
-					getDataBytes, getDataBytes.length, otherPorts.getRmPort()
+					getDataBytes, getDataBytes.length, InetAddress.getLocalHost(), otherPorts.getRmPort()
 			);
 			socket.send(packet);
 			
