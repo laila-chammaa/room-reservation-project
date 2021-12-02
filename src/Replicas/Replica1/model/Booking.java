@@ -14,6 +14,13 @@ public class Booking {
         this.timeslot = timeslot;
     }
 
+    public Booking(String recordID, String bookedBy, String timeslot, String bookingID) {
+        this.recordID = recordID;
+        this.bookedBy = bookedBy;
+        this.timeslot = timeslot;
+        this.bookingID = bookingID;
+    }
+
     public String getRecordID() {
         return recordID;
     }

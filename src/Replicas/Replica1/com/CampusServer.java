@@ -12,6 +12,8 @@ import org.json.simple.JSONObject;
 
 import javax.jws.WebService;
 import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -23,7 +25,12 @@ import java.util.stream.Collectors;
 
 
 @WebService(endpointInterface = "Replicas.CampusServerInterface")
-public class CampusServer implements CampusServerInterface {
+public class CampusServer implements CampusServerInterface, Runnable {
+    private static final Object createRoomRequestLock = new Object();
+    private static final Object deleteRoomRequestLock = new Object();
+    private static final Object bookRoomRequestLock = new Object();
+    private static final Object cancelBookingRequestLock = new Object();
+
     private static final int MAX_NUM_BOOKING = 3;
     private static final int USER_TYPE_POS = 3;
 
@@ -597,21 +604,137 @@ public class CampusServer implements CampusServerInterface {
         for (Map.Entry<String, Map.Entry<String, Integer>> record : roomRecords.entrySet()) {
             JSONObject jsonRecord = new JSONObject();
             List<Booking> bookings = bookingRecords.get(record.getKey());
-
-            jsonRecord.put(MessageKeys.DATE, record.getValue().getKey());
-            jsonRecord.put(MessageKeys.ROOM_NUM, record.getValue().getValue());
             for (Booking booking : bookings) {
+                jsonRecord.put(MessageKeys.DATE, record.getValue().getKey());
+                jsonRecord.put(MessageKeys.ROOM_NUM, record.getValue().getValue());
                 jsonRecord.put(MessageKeys.TIMESLOT, booking.getTimeslot());
                 jsonRecord.put(MessageKeys.BOOKING_ID, booking.getBookingID());
                 jsonRecord.put(MessageKeys.STUDENT_ID, booking.getBookedBy());
+                jsonRecords.add(jsonRecord);
             }
-            jsonRecords.add(jsonRecord);
         }
         return jsonRecords;
     }
 
     @Override
     public void setRecords(JSONArray records) {
-        //TODO
+        this.roomRecords = new ConcurrentHashMap<>();
+        this.bookingRecords = new ConcurrentHashMap<>();
+
+        stuBkngCntMap = new ArrayList<>(55);
+        for (int i = 0; i < 55; i++)
+            stuBkngCntMap.add(new HashMap<>());
+
+        recordIdCount = 1;
+
+        for (Object jrecord : records) {
+            JSONObject record = (JSONObject) jrecord;
+
+            String date = record.get(MessageKeys.DATE).toString();
+            String timeslot = record.get(MessageKeys.TIMESLOT).toString();
+            String bookedBy = record.get(MessageKeys.STUDENT_ID).toString();
+            String bookingId = record.get(MessageKeys.BOOKING_ID).toString();
+            int roomNb = Integer.parseInt(record.get(MessageKeys.ROOM_NUM).toString());
+
+            Optional<Map.Entry<String, Map.Entry<String, Integer>>> roomRecord = roomRecords.entrySet().stream()
+                    .filter(h -> h.getValue().getKey().equals(date) && h.getValue().getValue() == roomNb).findFirst();
+            if (roomRecord.isPresent()) {
+                String recordID = roomRecord.get().getKey();
+                Booking booking = new Booking(recordID, bookedBy, timeslot, bookingId);
+                updateRecord(recordID, booking);
+            } else {
+                createRecord(roomNb, date, bookedBy, timeslot, bookingId);
+            }
+        }
+    }
+
+    private void createRecord(int roomNumber, String date, String bookedBy, String timeslot, String bookingId) {
+        String recordID = "RR" + String.format("%05d", recordIdCount);
+        incrementRecordID();
+        while (roomRecords.get(recordID) != null) {
+            incrementRecordID();
+            recordID = "RR" + recordIdCount;
+        }
+        roomRecords.put(recordID, new AbstractMap.SimpleEntry<>(date, roomNumber));
+        List<Booking> newBookings = new ArrayList<>();
+        newBookings.add(new Booking(recordID, bookedBy, timeslot, bookingId));
+        bookingRecords.put(recordID, newBookings);
+    }
+
+    private void updateRecord(String recordID, Booking booking) {
+        List<Booking> previousBookings = bookingRecords.get(recordID);
+        List<Booking> newBookings = new ArrayList<>(previousBookings);
+        newBookings.add(booking);
+        bookingRecords.put(recordID, newBookings);
+    }
+
+    @Override
+    public void run() {
+        try (DatagramSocket socket = new DatagramSocket(UDPPort)) {
+            while (true) {
+                byte[] receivedBytes = new byte[128];
+                DatagramPacket request = new DatagramPacket(receivedBytes, receivedBytes.length);
+                socket.receive(request);
+
+                String data = new String(receivedBytes);
+
+                String replyMessage;
+
+                if (data.startsWith("getAvailableTimeSlot:")) {
+                    String dateString = data.split("getAvailableTimeSlot:")[1].trim();
+                    replyMessage = this.getAvailableTimeSlot(dateString);
+                } else if (data.startsWith("createRoom:")) {
+                    synchronized (createRoomRequestLock) {
+                        String[] params = data.split("createRoom:")[1].trim().split(";");
+                        String userId = params[0];
+                        String roomNumber = params[1];
+                        String date = params[2];
+                        String timeSlots = params[3];
+                        replyMessage = this.createRoom(userId, Integer.parseInt(roomNumber), date, timeSlots.split(","));
+                    }
+                } else if (data.startsWith("changeReservation:")) {
+                    synchronized (bookRoomRequestLock) {
+                        String[] params = data.split("changeReservation:")[1].trim().split(";");
+                        String userId = params[0];
+                        String bookingID = params[1];
+                        String roomNumber = params[2];
+                        String newCampusName = params[3];
+                        String timeSlot = params[4];
+                        replyMessage = this.changeReservation(userId, bookingID, newCampusName,
+                                Integer.parseInt(roomNumber), timeSlot);
+                    }
+                } else if (data.startsWith("deleteRoom:")) {
+                    synchronized (deleteRoomRequestLock) {
+                        String[] params = data.split("deleteRoom:")[1].trim().split(";");
+                        String userId = params[0];
+                        String roomNumber = params[1];
+                        String date = params[2];
+                        String timeSlots = params[3];
+                        replyMessage = this.deleteRoom(userId, Integer.parseInt(roomNumber), date, timeSlots.split(","));
+                    }
+                } else if (data.startsWith("bookRoom:")) {
+                    synchronized (bookRoomRequestLock) {
+                        String[] params = data.split("bookRoom:")[1].trim().split(";");
+                        String userId = params[0];
+                        String roomNumber = params[1];
+                        String date = params[2];
+                        String timeSlot = params[3];
+                        replyMessage = this.bookRoom(userId, this.campusID, Integer.parseInt(roomNumber), date, timeSlot);
+                    }
+                } else if (data.startsWith("cancelBooking:")) {
+                    synchronized (cancelBookingRequestLock) {
+                        String[] params = data.split("cancelBooking:")[1].trim().split(";");
+                        replyMessage = this.cancelBooking(params[0], params[1]);
+                    }
+                } else {
+                    replyMessage = "Error: invalid request";
+                }
+
+                DatagramPacket reply = new DatagramPacket(replyMessage.getBytes(), replyMessage.getBytes().length, request.getAddress(), request.getPort());
+                socket.send(reply);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }
