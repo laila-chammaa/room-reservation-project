@@ -61,6 +61,20 @@ public class ReplicaManager {
 	}
 	
 	class QueueThread implements Runnable {
+		
+		private void sendAcknowledgement(int sequenceNumber) {
+			JSONObject jsonAck = new JSONObject();
+			jsonAck.put(MessageKeys.SEQ_NUM, sequenceNumber);
+			jsonAck.put(MessageKeys.COMMAND_TYPE, Config.ACK);
+			byte[] ack = jsonAck.toString().getBytes();
+			try (DatagramSocket socket = new DatagramSocket()) {
+				DatagramPacket packet = new DatagramPacket(ack, ack.length, InetAddress.getByName(Config.IPAddresses.SEQUENCER), Config.PortNumbers.FE_SEQ);
+				socket.send(packet);
+			} catch(IOException e) {
+				e.printStackTrace();
+			}
+		}
+		
 		@Override
 		public void run() {
 			try (MulticastSocket socket = new MulticastSocket(Config.PortNumbers.SEQ_RE)) {
@@ -70,6 +84,7 @@ public class ReplicaManager {
 					DatagramPacket receivedPacket = new DatagramPacket(receivedBytes, receivedBytes.length);
 					socket.receive(receivedPacket);
 					JSONObject requestData = (JSONObject) parser.parse(new String(receivedPacket.getData()).trim());
+					sendAcknowledgement(Integer.parseInt(requestData.get(MessageKeys.SEQ_NUM).toString()));
 					synchronized(queueLock) {
 						requestQueue.add(requestData);
 					}
