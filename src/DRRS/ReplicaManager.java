@@ -6,7 +6,6 @@ import org.json.simple.parser.ParseException;
 
 import java.io.IOException;
 import java.net.*;
-import java.util.ArrayList;
 import java.util.Queue;
 import java.util.Random;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -16,10 +15,8 @@ public class ReplicaManager {
 	private int failureCount;
 	private final Queue<JSONObject> requestQueue;
 	private final Replica replica;
+	private final int replicaNumber;
 	private final ReplicaPorts replicaManagerPorts;
-	private ReplicaPorts otherPorts1 = null;
-	private ReplicaPorts otherPorts2 = null;
-	private ReplicaPorts otherPorts3 = null;
 	private final Object queueLock;
 	private final Thread managerThread;
 	private final Thread replicaThread;
@@ -31,16 +28,8 @@ public class ReplicaManager {
 	private final Random randomizer = new Random();
 	
 	public ReplicaManager(int replicaNumber, Replica replica) throws UnknownHostException {
+		this.replicaNumber = replicaNumber;
 		this.replicaManagerPorts = Config.Ports.REPLICA_MANAGER_PORTS_MAP.get(replicaNumber);
-		for (int i = 1; i <= 4; i++) {
-			if (otherPorts1 == null && i != replicaNumber) {
-				otherPorts1 = Config.Ports.REPLICA_MANAGER_PORTS_MAP.get(i);
-			} else if (otherPorts2 == null && i != replicaNumber) {
-				otherPorts2 = Config.Ports.REPLICA_MANAGER_PORTS_MAP.get(i);
-			} else if (otherPorts3 == null && i != replicaNumber) {
-				otherPorts3 = Config.Ports.REPLICA_MANAGER_PORTS_MAP.get(i);
-			}
-		}
 		managerAddress = InetAddress.getByName(replicaManagerPorts.getRmIpAddress());
 		
 		getDataObject = new JSONObject();
@@ -209,23 +198,13 @@ public class ReplicaManager {
 		
 		try(DatagramSocket socket = new DatagramSocket()) {
 			socket.setSoTimeout(1000);
-			ArrayList<JSONObject> dataObjects = new ArrayList<>();
-			JSONObject dataObject1 = requestGetData(socket, otherPorts1);
-			JSONObject dataObject2 = requestGetData(socket, otherPorts2);
-			JSONObject dataObject3 = requestGetData(socket, otherPorts3);
 			
-			if (dataObject1 != null) {
-				dataObjects.add(dataObject1);
+			int pickedReplicaNb;
+			while(currentData == null) {
+				// Get valid random replica
+				while ((pickedReplicaNb = randomizer.nextInt(4) + 1) == replicaNumber);
+				currentData = requestGetData(socket, Config.Ports.REPLICA_MANAGER_PORTS_MAP.get(pickedReplicaNb));
 			}
-			if (dataObject2 != null) {
-				dataObjects.add(dataObject2);
-			}
-			if (dataObject3 != null) {
-				dataObjects.add(dataObject3);
-			}
-			
-			int objectToPick = randomizer.nextInt(dataObjects.size());
-			currentData = dataObjects.get(objectToPick);
 		} catch(Exception e) {
 			e.printStackTrace();
 		}
