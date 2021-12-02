@@ -64,7 +64,7 @@ public class ReplicaManager {
 		@Override
 		public void run() {
 			try (MulticastSocket socket = new MulticastSocket(Config.PortNumbers.SEQ_RE)) {
-				socket.joinGroup(InetAddress.getByName(Config.IPAddresses.MULTICAST));
+				socket.joinGroup(InetAddress.getByName(Config.IPAddresses.MULTICAST_ADR));
 				while(true) {
 					byte[] receivedBytes = new byte[1024];
 					DatagramPacket receivedPacket = new DatagramPacket(receivedBytes, receivedBytes.length);
