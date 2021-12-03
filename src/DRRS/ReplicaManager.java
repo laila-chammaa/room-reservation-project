@@ -221,10 +221,9 @@ public class ReplicaManager {
 	}
 	
 	public void resetReplica() throws InterruptedException {
-		System.out.println("Replica " + replicaNumber + ": resetting....");
+		System.out.println("Replica " + replicaNumber + ": restarting replica.");
 		
 		this.replicaThread.interrupt();
-		System.out.println("Closed replica thread");
 		
 		JSONObject currentData = null;
 		
@@ -232,19 +231,18 @@ public class ReplicaManager {
 			int pickedReplicaNb;
 			while(currentData == null) {
 				// Get valid random replica
-				while ((pickedReplicaNb = randomizer.nextInt(3) + 1) == replicaNumber);
+				while ((pickedReplicaNb = randomizer.nextInt(4) + 1) == replicaNumber);
 				currentData = requestGetData(socket, Config.Ports.REPLICA_MANAGER_PORTS_MAP.get(pickedReplicaNb));
+				System.out.println("Replica " + replicaNumber + ": retrieved data from replica" + pickedReplicaNb + ".");
 			}
 		} catch(Exception e) {
 			e.printStackTrace();
 		}
 		this.replica.setCurrentData(currentData);
-		System.out.println("Set data");
 		this.replicaThread = new Thread(new ReplicaThread());
 		this.replicaThread.start();
-		System.out.println("Started replica thread");
 		
-		System.out.println("Replica " + replicaNumber + ": reset complete.");
+		System.out.println("Replica " + replicaNumber + ": restart complete.");
 		failureCount = 0;
 	}
 }
