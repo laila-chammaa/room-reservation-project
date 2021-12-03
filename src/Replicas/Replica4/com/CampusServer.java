@@ -24,7 +24,7 @@ import java.util.stream.Collectors;
 
 
 @WebService(endpointInterface = "Replicas.CampusServerInterface")
-public class CampusServer implements CampusServerInterface, Runnable {
+public class CampusServer implements CampusServerInterface {
     private static final Object createRoomRequestLock = new Object();
     private static final Object deleteRoomRequestLock = new Object();
     private static final Object bookRoomRequestLock = new Object();
