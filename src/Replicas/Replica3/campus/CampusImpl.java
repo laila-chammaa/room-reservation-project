@@ -436,6 +436,7 @@ public class CampusImpl implements CampusServerInterface, Runnable {
     }
 
     private int checkWeeklyBookCount(String date, String studentID) {
+
         int count = 0;
         Calendar c = Calendar.getInstance();
         c.setTime(Helpers.createDateFromString(date));
