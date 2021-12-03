@@ -118,7 +118,7 @@ public class CampusImpl implements CampusServerInterface {
     public synchronized String createRoom(String adminID, int roomNumber, String date, String[] timeSlots) {
         if (inducedCrash) {
             try {
-                Thread.sleep(5000);
+                Thread.sleep(10000);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
