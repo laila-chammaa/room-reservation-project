@@ -1,7 +1,6 @@
 package DRRS;
 
 import Replicas.CampusServerInterface;
-import Replicas.Replica3.campus.CampusImpl;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
@@ -54,6 +53,7 @@ public abstract class Replica {
 	 * @return {String}
 	 */
 	public JSONObject getCurrentData() {
+		System.out.println("Getting data from replica");
 		JSONArray kklRecords = kklCampus.getRecords();
 		JSONArray dvlRecords = dvlCampus.getRecords();
 		JSONArray wstRecords = wstCampus.getRecords();

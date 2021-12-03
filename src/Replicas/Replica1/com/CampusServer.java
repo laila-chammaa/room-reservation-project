@@ -57,7 +57,7 @@ public class CampusServer implements CampusServerInterface, Runnable {
     public CampusServer() {
         this.campusID = "DVL"; //default value
         this.UDPHost = Config.IPAddresses.REPLICA1;
-        this.UDPPort = 8080;
+        this.UDPPort = 5001;
         this.serversList = new HashMap<>(); //default value
 
         this.UDPServer = new UDPServer(UDPHost, UDPPort, this);
@@ -250,7 +250,7 @@ public class CampusServer implements CampusServerInterface, Runnable {
                         date, timeslot));
                 UDPClient requestClient = getUdpClient(campusID);
 
-                CampusUDPInterface req = new CampusUDP(studentID, campusID, roomNumber, date, timeslot);
+                CampusUDPInterface req = new CampusUDP(studentID, campusID, roomNumber, timeslot, date);
                 requestClient.send(req);
 
                 //3.4 Receive the response.
