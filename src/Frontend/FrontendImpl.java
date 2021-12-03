@@ -380,7 +380,7 @@ public class FrontendImpl implements FrontendInterface {
                     //more than one message is incorrect, no way to find the correct one
                     throw new IllegalStateException("More than one incorrect message, no way to find correct one.");
                 }
-            } catch (NullPointerException e) {
+            } catch (IndexOutOfBoundsException e) {
                 if (message1.code.equals(message2.code) && message2.code.equals(message3.code)) {
                     return Optional.empty();
                 } else if (message1.code.equals(message2.code)) {

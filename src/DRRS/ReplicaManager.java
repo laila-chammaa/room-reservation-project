@@ -120,8 +120,8 @@ public class ReplicaManager {
 						String message = replica.executeRequest(currentRequest);
 						Config.StatusCode statusCode = Config.StatusCode.SUCCESS;
 
-						if (message.contains("INVALID") || message.contains("Failure") ||
-								message.contains("Error")) {
+						if (message.toLowerCase().contains("invalid") || message.toLowerCase().contains("failure") ||
+								message.toLowerCase().contains("error")) {
 							statusCode = Config.StatusCode.FAIL;
 						}
 						
