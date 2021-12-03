@@ -214,6 +214,7 @@ public class ReplicaManager {
 	}
 	
 	public void resetReplica() throws InterruptedException {
+		System.out.println("Replica " + replicaNumber + ": restarting replica.");
 		JSONObject currentData = null;
 		
 		try(DatagramSocket socket = new DatagramSocket()) {
