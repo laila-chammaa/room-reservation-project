@@ -30,6 +30,7 @@ public class CampusImpl implements CampusServerInterface {
     TextLogger logger;
     private int UDPPort;
     private HashMap<String, Integer> otherSocketPorts;
+    private boolean inducedCrash;
 
     public CampusImpl(String serverName, int UDPPort, HashMap<String, Integer> otherSocketPorts) {
         this.UDPPort = UDPPort;
@@ -37,6 +38,16 @@ public class CampusImpl implements CampusServerInterface {
         this.otherSocketPorts = otherSocketPorts;
         roomRecords = new HashMap<>();
         logger = new TextLogger(this.serverName + "Server_log.txt");
+        inducedCrash = false;
+    }
+
+    public CampusImpl(String serverName, int UDPPort, HashMap<String, Integer> otherSocketPorts, boolean inducedCrash) {
+        this.UDPPort = UDPPort;
+        this.serverName = serverName;
+        this.otherSocketPorts = otherSocketPorts;
+        roomRecords = new HashMap<>();
+        logger = new TextLogger(this.serverName + "Server_log.txt");
+        this.inducedCrash = inducedCrash;
     }
 
     @Override
@@ -105,6 +116,14 @@ public class CampusImpl implements CampusServerInterface {
 
     @Override
     public synchronized String createRoom(String adminID, int roomNumber, String date, String[] timeSlots) {
+        if (inducedCrash) {
+            try {
+                Thread.sleep(5000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+
         if (!authenticate(adminID)) return "Failure: failed to authenticate admin";
         String successMessage = "Success: Successfully added timeslots for " + date + " in room " + roomNumber;
 
