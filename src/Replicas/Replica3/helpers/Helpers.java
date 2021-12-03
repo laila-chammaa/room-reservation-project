@@ -12,12 +12,12 @@ import java.util.Locale;
 
 public class Helpers {
     public static String formatDate(Date date) {
-        DateFormat df =  new SimpleDateFormat("dd-MM-yyyy", Locale.ENGLISH);
+        DateFormat df =  new SimpleDateFormat("dd/MM/yyyy", Locale.ENGLISH);
         return df.format(date);
     }
 
     public static Date createDateFromString(String sDate) {
-        DateFormat df = new SimpleDateFormat("dd-MM-yyyy", Locale.ENGLISH);
+        DateFormat df = new SimpleDateFormat("dd/MM/yyyy", Locale.ENGLISH);
         Date date = null;
 
         try {

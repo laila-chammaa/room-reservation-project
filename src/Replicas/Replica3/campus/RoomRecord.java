@@ -28,7 +28,9 @@ public class RoomRecord {
     }
 
     public boolean isBooked() {
-        return this.bookedBy != null;
+        if (this.bookedBy != null && this.bookedBy.equals(""))
+            return false;
+        return true;
     }
 
     public String getBookedBy() {
