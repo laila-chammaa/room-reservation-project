@@ -40,9 +40,6 @@ public class RoomRecordCampus implements CampusServerInterface {
 	}
 
 	public synchronized String createRoom(String userId, int roomNumber, String date, String[] timeSlots) {
-		try {
-			Thread.sleep(10000);
-		} catch(Exception ignored){}
 		boolean succeeded = true;
 		String message = "";
 		String parameters = this.buildAdminRequestParams(roomNumber, date, timeSlots);
