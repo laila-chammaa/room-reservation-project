@@ -9,6 +9,7 @@ import java.net.*;
 import java.util.Queue;
 import java.util.Random;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ReplicaManager {
 	private static final int MAX_FAILURE_COUNT = 3;
@@ -19,13 +20,14 @@ public class ReplicaManager {
 	private final ReplicaPorts replicaManagerPorts;
 	private final Object queueLock;
 	private final Thread managerThread;
-	private final Thread replicaThread;
+	private Thread replicaThread;
 	private final Thread queueThread;
 	private int lastProcessedSequenceNumber = 0;
 	private final InetAddress managerAddress;
 	private final JSONObject getDataObject;
 	private final JSONParser parser = new JSONParser();
 	private final Random randomizer = new Random();
+	private AtomicBoolean keepProcessing = new AtomicBoolean(false);
 	
 	public ReplicaManager(int replicaNumber, Replica replica) throws UnknownHostException {
 		this.replicaNumber = replicaNumber;
@@ -99,7 +101,6 @@ public class ReplicaManager {
 	class ReplicaThread implements Runnable {
 		@Override
 		public void run() {
-			replica.startServers();
 			while (true) {
 				synchronized(queueLock) {
 					JSONObject currentRequest = requestQueue.poll();
@@ -148,11 +149,14 @@ public class ReplicaManager {
 		
 		if (command.equals(Config.GET_DATA)) {
 			try {
+				System.out.println("Replica " + replicaNumber + ": IN GET_DATA");
 				JSONObject data = replica.getCurrentData();
+				System.out.println("Replica " + replicaNumber + ": got data");
 				byte[] dataSent = data.toString().getBytes();
 				InetAddress ipAddress = request.getAddress();
 				int port = request.getPort();
 				DatagramPacket datagramPacket = new DatagramPacket(dataSent, dataSent.length, ipAddress, port);
+				System.out.println("Replica " + replicaNumber + ": SENDING FROM GET_DATA");
 				socket.send(datagramPacket);
 			} catch (Exception e) {
 				e.printStackTrace();
@@ -183,6 +187,7 @@ public class ReplicaManager {
 	public void start() {
 		this.queueThread.start();
 		this.managerThread.start();
+		replica.startServers();
 		this.replicaThread.start();
 	}
 	
@@ -201,10 +206,12 @@ public class ReplicaManager {
 					getDataBytes, getDataBytes.length, InetAddress.getByName(otherPorts.getRmIpAddress()), otherPorts.getRmPort()
 			);
 			socket.send(packet);
+			System.out.println("SENT DATA");
 			
-			byte[] receiveDataBytes = new byte[1024];
+			byte[] receiveDataBytes = new byte[256000];
 			DatagramPacket receivedPacket = new DatagramPacket(receiveDataBytes, receiveDataBytes.length);
 			socket.receive(receivedPacket);
+			System.out.println("RECEIVED DATA");
 			
 			return (JSONObject) parser.parse(new String(receivedPacket.getData()).trim());
 		} catch(Exception e) {
@@ -215,24 +222,27 @@ public class ReplicaManager {
 	
 	public void resetReplica() throws InterruptedException {
 		System.out.println("Replica " + replicaNumber + ": restarting replica.");
+		
+		this.replicaThread.interrupt();
+		
 		JSONObject currentData = null;
 		
-		try(DatagramSocket socket = new DatagramSocket()) {
+		try(DatagramSocket socket = new DatagramSocket(9999, managerAddress)) {
 			int pickedReplicaNb;
 			while(currentData == null) {
 				// Get valid random replica
 				while ((pickedReplicaNb = randomizer.nextInt(4) + 1) == replicaNumber);
 				currentData = requestGetData(socket, Config.Ports.REPLICA_MANAGER_PORTS_MAP.get(pickedReplicaNb));
+				System.out.println("Replica " + replicaNumber + ": retrieved data from replica" + pickedReplicaNb + ".");
 			}
 		} catch(Exception e) {
 			e.printStackTrace();
 		}
-		
-		this.replicaThread.join();
-		this.replica.stopServers();
-		this.replica.startServers();
 		this.replica.setCurrentData(currentData);
+		this.replicaThread = new Thread(new ReplicaThread());
 		this.replicaThread.start();
+		
+		System.out.println("Replica " + replicaNumber + ": restart complete.");
 		failureCount = 0;
 	}
 }

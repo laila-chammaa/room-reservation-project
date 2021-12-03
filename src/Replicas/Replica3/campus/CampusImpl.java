@@ -19,7 +19,7 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
-public class CampusImpl implements CampusServerInterface, Runnable {
+public class CampusImpl implements CampusServerInterface {
     private static final Object createRoomRequestLock = new Object();
     private static final Object deleteRoomRequestLock = new Object();
     private static final Object bookRoomRequestLock = new Object();
@@ -30,6 +30,7 @@ public class CampusImpl implements CampusServerInterface, Runnable {
     TextLogger logger;
     private int UDPPort;
     private HashMap<String, Integer> otherSocketPorts;
+    private boolean inducedCrash;
 
     public CampusImpl(String serverName, int UDPPort, HashMap<String, Integer> otherSocketPorts) {
         this.UDPPort = UDPPort;
@@ -37,11 +38,20 @@ public class CampusImpl implements CampusServerInterface, Runnable {
         this.otherSocketPorts = otherSocketPorts;
         roomRecords = new HashMap<>();
         logger = new TextLogger(this.serverName + "Server_log.txt");
+        inducedCrash = false;
+    }
+
+    public CampusImpl(String serverName, int UDPPort, HashMap<String, Integer> otherSocketPorts, boolean inducedCrash) {
+        this.UDPPort = UDPPort;
+        this.serverName = serverName;
+        this.otherSocketPorts = otherSocketPorts;
+        roomRecords = new HashMap<>();
+        logger = new TextLogger(this.serverName + "Server_log.txt");
+        this.inducedCrash = inducedCrash;
     }
 
     @Override
     public void run() {
-        System.out.println("starting " + this.serverName);
         udpLoop();
     }
 
@@ -105,6 +115,14 @@ public class CampusImpl implements CampusServerInterface, Runnable {
 
     @Override
     public synchronized String createRoom(String adminID, int roomNumber, String date, String[] timeSlots) {
+        if (inducedCrash) {
+            try {
+                Thread.sleep(10000);
+            } catch (InterruptedException e) {
+
+            }
+        }
+
         if (!authenticate(adminID)) return "Failure: failed to authenticate admin";
         String successMessage = "Success: Successfully added timeslots for " + date + " in room " + roomNumber;
 
@@ -347,15 +365,15 @@ public class CampusImpl implements CampusServerInterface, Runnable {
 
             String date = record.get(MessageKeys.DATE).toString();
             String timeslot = record.get(MessageKeys.TIMESLOT).toString();
-            String bookedBy = record.get(MessageKeys.STUDENT_ID).toString();
-            String bookingId = record.get(MessageKeys.BOOKING_ID).toString();
+            String bookedBy = (String) record.get(MessageKeys.STUDENT_ID);
+            String bookingId = (String) record.get(MessageKeys.BOOKING_ID);
             int roomNb = Integer.parseInt(record.get(MessageKeys.ROOM_NUM).toString());
 
             RoomRecord tmp = new RoomRecord(timeslot, roomNb, date, "", this.serverName);
             tmp.setBookingID(bookingId);
             tmp.setBookedBy(bookedBy);
 
-            if (!bookedBy.equals("") && !bookingId.equals("")) {
+            if (bookedBy != null && !bookedBy.equals("") && !bookingId.equals("")) {
                 CentralRepository.getBookingRecord().put(bookingId, tmp);
             }
             timeRoomRecord.put(timeslot, tmp);
@@ -436,6 +454,7 @@ public class CampusImpl implements CampusServerInterface, Runnable {
     }
 
     private int checkWeeklyBookCount(String date, String studentID) {
+
         int count = 0;
         Calendar c = Calendar.getInstance();
         c.setTime(Helpers.createDateFromString(date));
