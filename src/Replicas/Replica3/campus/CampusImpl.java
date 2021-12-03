@@ -19,7 +19,7 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
-public class CampusImpl implements CampusServerInterface, Runnable {
+public class CampusImpl implements CampusServerInterface {
     private static final Object createRoomRequestLock = new Object();
     private static final Object deleteRoomRequestLock = new Object();
     private static final Object bookRoomRequestLock = new Object();
@@ -347,8 +347,8 @@ public class CampusImpl implements CampusServerInterface, Runnable {
 
             String date = record.get(MessageKeys.DATE).toString();
             String timeslot = record.get(MessageKeys.TIMESLOT).toString();
-            String bookedBy = record.get(MessageKeys.STUDENT_ID).toString();
-            String bookingId = record.get(MessageKeys.BOOKING_ID).toString();
+            String bookedBy = (String) record.get(MessageKeys.STUDENT_ID);
+            String bookingId = (String) record.get(MessageKeys.BOOKING_ID);
             int roomNb = Integer.parseInt(record.get(MessageKeys.ROOM_NUM).toString());
 
             RoomRecord tmp = new RoomRecord(timeslot, roomNb, date, "", this.serverName);

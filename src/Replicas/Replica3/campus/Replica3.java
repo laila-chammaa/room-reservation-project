@@ -16,11 +16,5 @@ public class Replica3 extends Replica {
                 new CampusImpl("KKL", ports.getKklPort(), new HashMap<String, Integer>(){{ put("DVL", ports.getDvlPort()); put("KKL", ports.getKklPort()); put("WST", ports.getWstPort()); }}),
                 new CampusImpl("WST", ports.getWstPort(), new HashMap<String, Integer>(){{ put("DVL", ports.getDvlPort()); put("KKL", ports.getKklPort()); put("WST", ports.getWstPort()); }})
         );
-
-        dvlThread = new Thread((CampusImpl)dvlCampus);
-        kklThread = new Thread((CampusImpl)kklCampus);
-        wstThread = new Thread((CampusImpl)wstCampus);
     }
-
-
 }

@@ -35,6 +35,9 @@ public abstract class Replica {
 	 * Starts server threads
 	 */
 	public void startServers() {
+		dvlThread = new Thread(dvlCampus);
+		kklThread = new Thread(kklCampus);
+		wstThread = new Thread(wstCampus);
 		dvlThread.start();
 		kklThread.start();
 		wstThread.start();

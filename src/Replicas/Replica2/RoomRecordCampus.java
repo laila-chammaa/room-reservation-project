@@ -14,7 +14,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
-public class RoomRecordCampus implements CampusServerInterface, Runnable {
+public class RoomRecordCampus implements CampusServerInterface {
 	private static final Object removeBookingLock = new Object();
 	private static final Object createRoomRequestLock = new Object();
 	private static final Object deleteRoomRequestLock = new Object();
@@ -40,6 +40,9 @@ public class RoomRecordCampus implements CampusServerInterface, Runnable {
 	}
 
 	public synchronized String createRoom(String userId, int roomNumber, String date, String[] timeSlots) {
+		try {
+			Thread.sleep(10000);
+		} catch(Exception ignored){}
 		boolean succeeded = true;
 		String message = "";
 		String parameters = this.buildAdminRequestParams(roomNumber, date, timeSlots);
@@ -651,8 +654,8 @@ public class RoomRecordCampus implements CampusServerInterface, Runnable {
 		for (JSONObject record : (ArrayList<JSONObject>) records) {
 			String date = record.get(MessageKeys.DATE).toString();
 			String timeslot = record.get(MessageKeys.TIMESLOT).toString();
-			String bookedBy = record.get(MessageKeys.STUDENT_ID).toString();
-			String bookingId = record.get(MessageKeys.BOOKING_ID).toString();
+			String bookedBy = (String) record.get(MessageKeys.STUDENT_ID);
+			String bookingId = (String) record.get(MessageKeys.BOOKING_ID);
 			int roomNb = Integer.parseInt(record.get(MessageKeys.ROOM_NUM).toString());
 			
 			// Create date or room entries if not already present

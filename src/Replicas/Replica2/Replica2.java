@@ -17,8 +17,5 @@ public class Replica2 extends Replica {
 				new RoomRecordCampus("KKL", ports.getKklPort(), new HashMap<String, Integer>(){{ put("DVL", ports.getDvlPort()); put("WST", ports.getWstPort()); }}),
 				new RoomRecordCampus("WST", ports.getWstPort(), new HashMap<String, Integer>(){{ put("DVL", ports.getDvlPort()); put("KKL", ports.getKklPort()); }})
 		);
-		dvlThread = new Thread((RoomRecordCampus)dvlCampus);
-		kklThread = new Thread((RoomRecordCampus)kklCampus);
-		wstThread = new Thread((RoomRecordCampus)wstCampus);
 	}
 }
