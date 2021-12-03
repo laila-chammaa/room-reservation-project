@@ -71,9 +71,28 @@ public class Sequencer extends Thread{
         JSONObject jsonObject = (JSONObject) (JSONValue.parse(received.trim()));
 
         // Incoming message could be an ack, check if this is the case
+        if (!jsonObject.containsKey(MessageKeys.COMMAND_TYPE)) {
+            System.out.println("Error: expected incoming message to have field " + MessageKeys.COMMAND_TYPE);
+            System.out.println("Ignoring this message");
+            return;
+        }
+
         String messageType = (String) (jsonObject.get(MessageKeys.COMMAND_TYPE));
         if (messageType.equals(Config.ACK)) {
-            // Received an ack from a member
+            // Received an ack from a member, checking for existence of fields rm_port_num and sequence_number
+
+            if (!jsonObject.containsKey(MessageKeys.RM_PORT_NUMBER)) {
+                System.out.println("Error: expected incoming ack to have field " + MessageKeys.RM_PORT_NUMBER);
+                System.out.println("Ignoring this message");
+                return;
+            }
+
+            if (!jsonObject.containsKey(MessageKeys.SEQ_NUM)) {
+                System.out.println("Error: expected incoming ack to have field " + MessageKeys.SEQ_NUM);
+                System.out.println("Ignoring this message");
+                return;
+            }
+
             long portNb = (Long) jsonObject.get(MessageKeys.RM_PORT_NUMBER);
             Object lastSeqNum = jsonObject.get(MessageKeys.SEQ_NUM);
             if (lastSeqNum instanceof Long) {
@@ -82,19 +101,21 @@ public class Sequencer extends Thread{
             // If the sequence is in the sync phase, no further messages are accepted from the FE until the history buffer is clear
         } else if (running) {
             // Get the sequence id from the message to send in the ack message
+
             Object seqId = jsonObject.get(MessageKeys.MESSAGE_ID);
             if (seqId == null) {
                 System.out.println("Error: received message without a seqId field");
             } else {
                 long seqIdAsLong = (long) seqId;
 
+                // Send acknowledgement from the frontend
                 sendAckToFE(seqIdAsLong, address, SEQ_FE);
 
                 // check if message is a duplicate (e.g. due to retransmission by the FE)
                 for (JSONObject nextElement : deliveryQueue) {
                     Object messageId = nextElement.get(MessageKeys.MESSAGE_ID);
                     if (messageId instanceof Long && (Long) messageId == seqIdAsLong) {
-                        System.out.println("Message was already delivered, sent ack only");
+                        System.out.println("Message w/ message ID " + messageId + " was already delivered, sent ack only");
                         return;
                     }
                 }
@@ -110,9 +131,9 @@ public class Sequencer extends Thread{
                 deliveryQueue.add(jsonObject);
 
                 // If the history buffer reaches its maximum size, switch to sync phase
-            if (deliveryQueue.size() > Config.DELIVERY_QUEUE_MAX_SIZE) {
-                running = false;
-            }
+                if (deliveryQueue.size() > Config.DELIVERY_QUEUE_MAX_SIZE) {
+                    running = false;
+                }
 
                 // Transmit the message to all destinations
                 multicastMessage(jsonObject);
