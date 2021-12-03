@@ -32,8 +32,5 @@ public class Replica4 extends Replica {
                             put("WST", host + ports.getWstPort());
                         }})
         );
-        dvlThread = new Thread((CampusServer) dvlCampus);
-        kklThread = new Thread((CampusServer) kklCampus);
-        wstThread = new Thread((CampusServer) wstCampus);
     }
 }
