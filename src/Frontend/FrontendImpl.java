@@ -207,22 +207,6 @@ public class FrontendImpl implements FrontendInterface {
         return timeslotArray;
     }
 
-    private String validateAdmin(String userID) {
-        char userType = userID.charAt(USER_TYPE_POS);
-        if (userType != 'A') {
-            return "Login Error: This request is for admins only.";
-        }
-        return null;
-    }
-
-    private String validateStudent(String userID) {
-        char userType = userID.charAt(USER_TYPE_POS);
-        if (userType != 'S') {
-            return "Login Error: This request is for students only.";
-        }
-        return null;
-    }
-
     private class SendToSequencer implements Callable<String> {
         Message message;
 
@@ -323,7 +307,6 @@ public class FrontendImpl implements FrontendInterface {
                     continue;
                 }
 
-                //TODO: if we get 2 correct responses, just return? or always wait for 4?
                 if (message.getReturnMessages().size() == 2) {
                     message1 = message.getReturnMessages().get(0);
                     message2 = message.getReturnMessages().get(1);
@@ -337,7 +320,15 @@ public class FrontendImpl implements FrontendInterface {
                     message1 = message.getReturnMessages().get(0);
                     message2 = message.getReturnMessages().get(1);
 
-                    Optional<ReturnMessage> incorrectMessage = findIncorrectMessage(message);
+                    Optional<ReturnMessage> incorrectMessage;
+
+                    try {
+                        incorrectMessage = findIncorrectMessage(message);
+                    } catch (IllegalStateException e) {
+                        //more than one incorrect message
+                        response = e.getMessage();
+                        break;
+                    }
 
                     if (incorrectMessage.isPresent()) {
                         int port = incorrectMessage.get().port;
@@ -385,8 +376,7 @@ public class FrontendImpl implements FrontendInterface {
                 return Optional.of(message1);
             } else {
                 //more than one message is incorrect, no way to find the correct one
-                //TODO: throw error?
-                return Optional.empty();
+                throw new IllegalStateException("More than one incorrect message, no way to find correct one.");
             }
         }
     }
