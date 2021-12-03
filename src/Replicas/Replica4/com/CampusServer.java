@@ -630,8 +630,8 @@ public class CampusServer implements CampusServerInterface, Runnable {
 
             String date = record.get(MessageKeys.DATE).toString();
             String timeslot = record.get(MessageKeys.TIMESLOT).toString();
-            String bookedBy = record.get(MessageKeys.STUDENT_ID).toString();
-            String bookingId = record.get(MessageKeys.BOOKING_ID).toString();
+            String bookedBy = (String) record.get(MessageKeys.STUDENT_ID);
+            String bookingId = (String) record.get(MessageKeys.BOOKING_ID);
             int roomNb = Integer.parseInt(record.get(MessageKeys.ROOM_NUM).toString());
 
             Optional<Map.Entry<String, Map.Entry<String, Integer>>> roomRecord = roomRecords.entrySet().stream()
