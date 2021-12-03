@@ -316,7 +316,8 @@ public class FrontendImpl implements FrontendInterface {
                         break;
                     }
                     receiveFromReplica.release(2);
-                } else if (message.getReturnMessages().size() == 4) {
+                } else if (message.getReturnMessages().size() > 2) {
+                    //can now recover from byzantine failure
                     message1 = message.getReturnMessages().get(0);
                     message2 = message.getReturnMessages().get(1);
 
@@ -357,26 +358,44 @@ public class FrontendImpl implements FrontendInterface {
             message1 = message.getReturnMessages().get(0);
             message2 = message.getReturnMessages().get(1);
             message3 = message.getReturnMessages().get(2);
-            message4 = message.getReturnMessages().get(3);
+            try {
+                message4 = message.getReturnMessages().get(3);
 
-            if (message1.code.equals(message2.code) && message2.code.equals(message3.code)
-                    && message3.code.equals(message4.code)) {
-                return Optional.empty();
-            } else if (message1.code.equals(message2.code) && message2.code.equals(message3.code)) {
-                //message 4 is different
-                return Optional.of(message4);
-            } else if (message1.code.equals(message2.code) && message2.code.equals(message4.code)) {
-                //message 3 is different
-                return Optional.of(message3);
-            } else if (message1.code.equals(message3.code) && message3.code.equals(message4.code)) {
-                //message 2 is different
-                return Optional.of(message2);
-            } else if (message2.code.equals(message3.code) && message3.code.equals(message4.code)) {
-                //message 1 is different
-                return Optional.of(message1);
-            } else {
-                //more than one message is incorrect, no way to find the correct one
-                throw new IllegalStateException("More than one incorrect message, no way to find correct one.");
+                if (message1.code.equals(message2.code) && message2.code.equals(message3.code)
+                        && message3.code.equals(message4.code)) {
+                    return Optional.empty();
+                } else if (message1.code.equals(message2.code) && message2.code.equals(message3.code)) {
+                    //message 4 is different
+                    return Optional.of(message4);
+                } else if (message1.code.equals(message2.code) && message2.code.equals(message4.code)) {
+                    //message 3 is different
+                    return Optional.of(message3);
+                } else if (message1.code.equals(message3.code) && message3.code.equals(message4.code)) {
+                    //message 2 is different
+                    return Optional.of(message2);
+                } else if (message2.code.equals(message3.code) && message3.code.equals(message4.code)) {
+                    //message 1 is different
+                    return Optional.of(message1);
+                } else {
+                    //more than one message is incorrect, no way to find the correct one
+                    throw new IllegalStateException("More than one incorrect message, no way to find correct one.");
+                }
+            } catch (NullPointerException e) {
+                if (message1.code.equals(message2.code) && message2.code.equals(message3.code)) {
+                    return Optional.empty();
+                } else if (message1.code.equals(message2.code)) {
+                    //message 3 is different
+                    return Optional.of(message3);
+                } else if (message1.code.equals(message3.code)) {
+                    //message 2 is different
+                    return Optional.of(message2);
+                } else if (message2.code.equals(message3.code)) {
+                    //message 1 is different
+                    return Optional.of(message1);
+                } else {
+                    //more than one message is incorrect, no way to find the correct one
+                    throw new IllegalStateException("More than one incorrect message, no way to find correct one.");
+                }
             }
         }
     }
