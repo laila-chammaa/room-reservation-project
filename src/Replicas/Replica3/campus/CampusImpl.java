@@ -52,7 +52,6 @@ public class CampusImpl implements CampusServerInterface {
 
     @Override
     public void run() {
-        System.out.println("starting " + this.serverName);
         udpLoop();
     }
 
@@ -120,7 +119,7 @@ public class CampusImpl implements CampusServerInterface {
             try {
                 Thread.sleep(10000);
             } catch (InterruptedException e) {
-                e.printStackTrace();
+
             }
         }
 
@@ -374,7 +373,7 @@ public class CampusImpl implements CampusServerInterface {
             tmp.setBookingID(bookingId);
             tmp.setBookedBy(bookedBy);
 
-            if (!bookedBy.equals("") && !bookingId.equals("")) {
+            if (bookedBy != null && !bookedBy.equals("") && !bookingId.equals("")) {
                 CentralRepository.getBookingRecord().put(bookingId, tmp);
             }
             timeRoomRecord.put(timeslot, tmp);
