@@ -33,10 +33,10 @@ public class SendToSequencer {
                 DatagramPacket reply = new DatagramPacket(buffer, buffer.length);
                 receiverSocket.receive(reply);
 
-                String replyString = new String(reply.getData(), reply.getOffset(), reply.getLength());
-                JSONObject jsonMessage = (JSONObject) parser.parse(replyString);
-
-                System.out.println(jsonMessage);
+//                String replyString = new String(reply.getData(), reply.getOffset(), reply.getLength());
+//                JSONObject jsonMessage = (JSONObject) parser.parse(replyString);
+//
+//                System.out.println(jsonMessage);
 
                 datagramSocket.receive(reply);
                 String data = new String(reply.getData()).trim();
@@ -44,8 +44,8 @@ public class SendToSequencer {
 
                 System.out.println(jsonMessage2);
 
-                if (jsonMessage2 != null && jsonMessage2.get("status_code").toString().equals("SUCCESS")
-                        || jsonMessage2.get("status_code").toString().equals("FAIL")) {
+                if (jsonMessage2 != null && (jsonMessage2.get("status_code").toString().equals("SUCCESS")
+                        || jsonMessage2.get("status_code").toString().equals("FAIL")) && jsonMessage2.get("message_id").toString().equals(msgJson.get("message_id").toString())) {
 
                     datagramSocket.close();
                     senderSocket.close();
