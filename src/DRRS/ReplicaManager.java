@@ -228,7 +228,7 @@ public class ReplicaManager {
 				// Get valid random replica
 				while ((pickedReplicaNb = randomizer.nextInt(4) + 1) == replicaNumber);
 				currentData = requestGetData(socket, Config.Ports.REPLICA_MANAGER_PORTS_MAP.get(pickedReplicaNb));
-				System.out.println("Replica " + replicaNumber + ": retrieved data from replica" + pickedReplicaNb + ".");
+				System.out.println("Replica " + replicaNumber + ": retrieved data from replica " + pickedReplicaNb + ".");
 			}
 		} catch(Exception e) {
 			e.printStackTrace();
