@@ -328,6 +328,7 @@ public class FrontendImpl implements FrontendInterface {
                     } catch (IllegalStateException e) {
                         //more than one incorrect message
                         response = e.getMessage();
+                        receiveFromReplica.release(2);
                         break;
                     }
 
@@ -343,6 +344,7 @@ public class FrontendImpl implements FrontendInterface {
                     } else {
                         response = message1.message; // Response to client.
                     }
+                    receiveFromReplica.release(2);
                     break;
                 } else {
                     receiveFromReplica.release(2);
@@ -381,6 +383,7 @@ public class FrontendImpl implements FrontendInterface {
                     throw new IllegalStateException("More than one incorrect message, no way to find correct one.");
                 }
             } catch (IndexOutOfBoundsException e) {
+                System.out.println("Only 3 messages received");
                 if (message1.code.equals(message2.code) && message2.code.equals(message3.code)) {
                     return Optional.empty();
                 } else if (message1.code.equals(message2.code)) {
