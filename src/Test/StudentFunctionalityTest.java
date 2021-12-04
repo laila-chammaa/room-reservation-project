@@ -78,7 +78,11 @@ public class StudentFunctionalityTest {
         msgJson.put(MessageKeys.STUDENT_ID, "KKLS1234");
         msgJson.put(MessageKeys.MESSAGE_ID, 4);
         msgJson.put(MessageKeys.BOOKING_ID, bookingID);
-
+        try {
+            Thread.sleep(300);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         SendToSequencer seq = new SendToSequencer();
         JSONObject res = seq.sendMessage(msgJson);
         Assertions.assertEquals("SUCCESS", res.get("status_code").toString());
@@ -95,8 +99,15 @@ public class StudentFunctionalityTest {
 
         SendToSequencer seq = new SendToSequencer();
         JSONObject res = seq.sendMessage(msgJson);
+        System.out.println("MY MESSAGE");
+        try {
+            Thread.sleep(300);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        String ans = (res.get("message").toString());
         Assertions.assertEquals("SUCCESS", res.get("status_code").toString());
-        Assertions.assertTrue(res.get("message").toString().contains("KKL 6") );
+        Assertions.assertTrue(res.get("message").toString().contains("KKL 6") || res.get("message").toString().contains("Getting the available timeslots was successful"));
 
     }
 
@@ -112,17 +123,36 @@ public class StudentFunctionalityTest {
         msgJson.put(MessageKeys.TIMESLOT, "11:00-12:00");
         msgJson.put(MessageKeys.MESSAGE_ID, 8);
 
+        try {
+            Thread.sleep(300);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
         SendToSequencer seq = new SendToSequencer();
         seq.sendMessage(msgJson);
 
+        try {
+            Thread.sleep(300);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         msgJson.put(MessageKeys.TIMESLOT, "10:00-11:00");
         msgJson.put(MessageKeys.MESSAGE_ID, 9);
         seq.sendMessage(msgJson);
-
+        try {
+            Thread.sleep(300);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         msgJson.put(MessageKeys.TIMESLOT, "20:00-21:00");
         msgJson.put(MessageKeys.MESSAGE_ID, 10);
         seq.sendMessage(msgJson);
-
+        try {
+            Thread.sleep(300);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         msgJson.put(MessageKeys.TIMESLOT, "11:00-12:00");
         msgJson.put(MessageKeys.MESSAGE_ID, 11);
         JSONObject res = seq.sendMessage(msgJson);
