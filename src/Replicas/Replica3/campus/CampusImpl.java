@@ -31,6 +31,8 @@ public class CampusImpl implements CampusServerInterface {
     private int UDPPort;
     private HashMap<String, Integer> otherSocketPorts;
     private boolean inducedCrash;
+    private boolean inducedByzantineFailure;
+    private static boolean alreadyCrashed = false;
 
     public CampusImpl(String serverName, int UDPPort, HashMap<String, Integer> otherSocketPorts) {
         this.UDPPort = UDPPort;
@@ -41,13 +43,14 @@ public class CampusImpl implements CampusServerInterface {
         inducedCrash = false;
     }
 
-    public CampusImpl(String serverName, int UDPPort, HashMap<String, Integer> otherSocketPorts, boolean inducedCrash) {
+    public CampusImpl(String serverName, int UDPPort, HashMap<String, Integer> otherSocketPorts, boolean inducedCrash, boolean inducedByzantineFailure) {
         this.UDPPort = UDPPort;
         this.serverName = serverName;
         this.otherSocketPorts = otherSocketPorts;
         roomRecords = new HashMap<>();
         logger = new TextLogger(this.serverName + "Server_log.txt");
         this.inducedCrash = inducedCrash;
+        this.inducedByzantineFailure = inducedByzantineFailure;
     }
 
     @Override
@@ -115,9 +118,15 @@ public class CampusImpl implements CampusServerInterface {
 
     @Override
     public synchronized String createRoom(String adminID, int roomNumber, String date, String[] timeSlots) {
-        if (inducedCrash) {
+        
+        if (inducedByzantineFailure) {
+            return "Failure";
+        }
+        
+        if (inducedCrash && !alreadyCrashed) {
             try {
                 Thread.sleep(10000);
+                alreadyCrashed = true;
             } catch (InterruptedException e) {
 
             }

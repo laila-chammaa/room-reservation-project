@@ -149,14 +149,11 @@ public class ReplicaManager {
 		
 		if (command.equals(Config.GET_DATA)) {
 			try {
-				System.out.println("Replica " + replicaNumber + ": IN GET_DATA");
 				JSONObject data = replica.getCurrentData();
-				System.out.println("Replica " + replicaNumber + ": got data");
 				byte[] dataSent = data.toString().getBytes();
 				InetAddress ipAddress = request.getAddress();
 				int port = request.getPort();
 				DatagramPacket datagramPacket = new DatagramPacket(dataSent, dataSent.length, ipAddress, port);
-				System.out.println("Replica " + replicaNumber + ": SENDING FROM GET_DATA");
 				socket.send(datagramPacket);
 			} catch (Exception e) {
 				e.printStackTrace();
@@ -206,12 +203,10 @@ public class ReplicaManager {
 					getDataBytes, getDataBytes.length, InetAddress.getByName(otherPorts.getRmIpAddress()), otherPorts.getRmPort()
 			);
 			socket.send(packet);
-			System.out.println("SENT DATA");
 			
 			byte[] receiveDataBytes = new byte[256000];
 			DatagramPacket receivedPacket = new DatagramPacket(receiveDataBytes, receiveDataBytes.length);
 			socket.receive(receivedPacket);
-			System.out.println("RECEIVED DATA");
 			
 			return (JSONObject) parser.parse(new String(receivedPacket.getData()).trim());
 		} catch(Exception e) {

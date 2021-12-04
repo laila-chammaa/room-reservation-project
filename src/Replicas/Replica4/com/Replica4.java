@@ -33,4 +33,42 @@ public class Replica4 extends Replica {
                         }})
         );
     }
+    
+    public Replica4(boolean inducedCrash, boolean inducedByzantineFailure) {
+        super(
+                new CampusServer(
+                        "DVL",
+                        ports.getDvlPort(),
+                        new HashMap<String, String>() {{
+                            put("DVL", host + ports.getDvlPort());
+                            put("KKL", host + ports.getKklPort());
+                            put("WST", host + ports.getWstPort());
+                        }},
+                        inducedCrash,
+                        inducedByzantineFailure
+                        ),
+                new CampusServer(
+                        "KKL",
+                        ports.getKklPort(),
+                        new HashMap<String, String>() {{
+                            put("DVL", host + ports.getDvlPort());
+                            put("KKL", host + ports.getKklPort());
+                            put("WST", host + ports.getWstPort());
+                        }},
+                        inducedCrash,
+                        inducedByzantineFailure
+                        ),
+                new CampusServer(
+                        "WST",
+                        ports.getWstPort(),
+                        new HashMap<String, String>() {{
+                            put("DVL", host + ports.getDvlPort());
+                            put("KKL", host + ports.getKklPort());
+                            put("WST", host + ports.getWstPort());
+                        }},
+                        inducedCrash,
+                        inducedByzantineFailure
+                        )
+        );
+    }
 }
