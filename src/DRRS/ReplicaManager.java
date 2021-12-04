@@ -120,8 +120,8 @@ public class ReplicaManager {
 						String message = replica.executeRequest(currentRequest);
 						Config.StatusCode statusCode = Config.StatusCode.SUCCESS;
 
-						if (message.contains("INVALID") || message.contains("Failure") ||
-								message.contains("Error")) {
+						if (message.toLowerCase().contains("invalid") || message.toLowerCase().contains("failure") ||
+								message.toLowerCase().contains("error")) {
 							statusCode = Config.StatusCode.FAIL;
 						}
 						
@@ -149,14 +149,11 @@ public class ReplicaManager {
 		
 		if (command.equals(Config.GET_DATA)) {
 			try {
-				System.out.println("Replica " + replicaNumber + ": IN GET_DATA");
 				JSONObject data = replica.getCurrentData();
-				System.out.println("Replica " + replicaNumber + ": got data");
 				byte[] dataSent = data.toString().getBytes();
 				InetAddress ipAddress = request.getAddress();
 				int port = request.getPort();
 				DatagramPacket datagramPacket = new DatagramPacket(dataSent, dataSent.length, ipAddress, port);
-				System.out.println("Replica " + replicaNumber + ": SENDING FROM GET_DATA");
 				socket.send(datagramPacket);
 			} catch (Exception e) {
 				e.printStackTrace();
@@ -206,12 +203,10 @@ public class ReplicaManager {
 					getDataBytes, getDataBytes.length, InetAddress.getByName(otherPorts.getRmIpAddress()), otherPorts.getRmPort()
 			);
 			socket.send(packet);
-			System.out.println("SENT DATA");
 			
 			byte[] receiveDataBytes = new byte[256000];
 			DatagramPacket receivedPacket = new DatagramPacket(receiveDataBytes, receiveDataBytes.length);
 			socket.receive(receivedPacket);
-			System.out.println("RECEIVED DATA");
 			
 			return (JSONObject) parser.parse(new String(receivedPacket.getData()).trim());
 		} catch(Exception e) {
@@ -233,7 +228,7 @@ public class ReplicaManager {
 				// Get valid random replica
 				while ((pickedReplicaNb = randomizer.nextInt(4) + 1) == replicaNumber);
 				currentData = requestGetData(socket, Config.Ports.REPLICA_MANAGER_PORTS_MAP.get(pickedReplicaNb));
-				System.out.println("Replica " + replicaNumber + ": retrieved data from replica" + pickedReplicaNb + ".");
+				System.out.println("Replica " + replicaNumber + ": retrieved data from replica " + pickedReplicaNb + ".");
 			}
 		} catch(Exception e) {
 			e.printStackTrace();

@@ -53,6 +53,10 @@ public class CampusServer implements CampusServerInterface {
 
     //Holds other servers' addresses : ["ServerName", "hostName:portNumber"]
     HashMap<String, String> serversList;
+    
+    private boolean inducedCrash;
+    private boolean inducedByzantineFailure;
+    private static boolean alreadyCrashed = false;
 
     public CampusServer() {
         this.campusID = "DVL"; //default value
@@ -99,6 +103,12 @@ public class CampusServer implements CampusServerInterface {
         this.logger.info("Server: " + campusID + " initialization success.");
         this.logger.info("Server: " + campusID + " port is : " + UDPPort);
     }
+    
+    public CampusServer(String campusID, int port, HashMap<String, String> serversList, boolean inducedCrash, boolean inducedByzantineFailure) {
+        this(campusID, port, serversList);
+        this.inducedCrash = inducedCrash;
+        this.inducedByzantineFailure = inducedByzantineFailure;
+    }
 
     private void initiateLogger() {
         Logger logger = Logger.getLogger("Server Logs/" + this.campusID + "- Server Log");
@@ -130,6 +140,19 @@ public class CampusServer implements CampusServerInterface {
 
     @Override
     public String createRoom(String adminID, int roomNumber, String date, String[] listOfTimeSlots) {
+        if (inducedByzantineFailure) {
+            return "Failure";
+        }
+    
+        if (inducedCrash && !alreadyCrashed) {
+            try {
+                Thread.sleep(10000);
+                alreadyCrashed = true;
+            } catch (InterruptedException e) {
+            
+            }
+        }
+        
         String resultLog;
         resultLog = validateAdmin(adminID);
         if (resultLog != null) {

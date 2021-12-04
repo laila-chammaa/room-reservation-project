@@ -207,22 +207,6 @@ public class FrontendImpl implements FrontendInterface {
         return timeslotArray;
     }
 
-    private String validateAdmin(String userID) {
-        char userType = userID.charAt(USER_TYPE_POS);
-        if (userType != 'A') {
-            return "Login Error: This request is for admins only.";
-        }
-        return null;
-    }
-
-    private String validateStudent(String userID) {
-        char userType = userID.charAt(USER_TYPE_POS);
-        if (userType != 'S') {
-            return "Login Error: This request is for students only.";
-        }
-        return null;
-    }
-
     private class SendToSequencer implements Callable<String> {
         Message message;
 
@@ -323,7 +307,6 @@ public class FrontendImpl implements FrontendInterface {
                     continue;
                 }
 
-                //TODO: if we get 2 correct responses, just return? or always wait for 4?
                 if (message.getReturnMessages().size() == 2) {
                     message1 = message.getReturnMessages().get(0);
                     message2 = message.getReturnMessages().get(1);
@@ -333,11 +316,21 @@ public class FrontendImpl implements FrontendInterface {
                         break;
                     }
                     receiveFromReplica.release(2);
-                } else if (message.getReturnMessages().size() == 4) {
+                } else if (message.getReturnMessages().size() > 2) {
+                    //can now recover from byzantine failure
                     message1 = message.getReturnMessages().get(0);
                     message2 = message.getReturnMessages().get(1);
 
-                    Optional<ReturnMessage> incorrectMessage = findIncorrectMessage(message);
+                    Optional<ReturnMessage> incorrectMessage;
+
+                    try {
+                        incorrectMessage = findIncorrectMessage(message);
+                    } catch (IllegalStateException e) {
+                        //more than one incorrect message
+                        response = e.getMessage();
+                        receiveFromReplica.release(2);
+                        break;
+                    }
 
                     if (incorrectMessage.isPresent()) {
                         int port = incorrectMessage.get().port;
@@ -351,6 +344,7 @@ public class FrontendImpl implements FrontendInterface {
                     } else {
                         response = message1.message; // Response to client.
                     }
+                    receiveFromReplica.release(2);
                     break;
                 } else {
                     receiveFromReplica.release(2);
@@ -366,27 +360,45 @@ public class FrontendImpl implements FrontendInterface {
             message1 = message.getReturnMessages().get(0);
             message2 = message.getReturnMessages().get(1);
             message3 = message.getReturnMessages().get(2);
-            message4 = message.getReturnMessages().get(3);
+            try {
+                message4 = message.getReturnMessages().get(3);
 
-            if (message1.code.equals(message2.code) && message2.code.equals(message3.code)
-                    && message3.code.equals(message4.code)) {
-                return Optional.empty();
-            } else if (message1.code.equals(message2.code) && message2.code.equals(message3.code)) {
-                //message 4 is different
-                return Optional.of(message4);
-            } else if (message1.code.equals(message2.code) && message2.code.equals(message4.code)) {
-                //message 3 is different
-                return Optional.of(message3);
-            } else if (message1.code.equals(message3.code) && message3.code.equals(message4.code)) {
-                //message 2 is different
-                return Optional.of(message2);
-            } else if (message2.code.equals(message3.code) && message3.code.equals(message4.code)) {
-                //message 1 is different
-                return Optional.of(message1);
-            } else {
-                //more than one message is incorrect, no way to find the correct one
-                //TODO: throw error?
-                return Optional.empty();
+                if (message1.code.equals(message2.code) && message2.code.equals(message3.code)
+                        && message3.code.equals(message4.code)) {
+                    return Optional.empty();
+                } else if (message1.code.equals(message2.code) && message2.code.equals(message3.code)) {
+                    //message 4 is different
+                    return Optional.of(message4);
+                } else if (message1.code.equals(message2.code) && message2.code.equals(message4.code)) {
+                    //message 3 is different
+                    return Optional.of(message3);
+                } else if (message1.code.equals(message3.code) && message3.code.equals(message4.code)) {
+                    //message 2 is different
+                    return Optional.of(message2);
+                } else if (message2.code.equals(message3.code) && message3.code.equals(message4.code)) {
+                    //message 1 is different
+                    return Optional.of(message1);
+                } else {
+                    //more than one message is incorrect, no way to find the correct one
+                    throw new IllegalStateException("More than one incorrect message, no way to find correct one.");
+                }
+            } catch (IndexOutOfBoundsException e) {
+                System.out.println("Only 3 messages received");
+                if (message1.code.equals(message2.code) && message2.code.equals(message3.code)) {
+                    return Optional.empty();
+                } else if (message1.code.equals(message2.code)) {
+                    //message 3 is different
+                    return Optional.of(message3);
+                } else if (message1.code.equals(message3.code)) {
+                    //message 2 is different
+                    return Optional.of(message2);
+                } else if (message2.code.equals(message3.code)) {
+                    //message 1 is different
+                    return Optional.of(message1);
+                } else {
+                    //more than one message is incorrect, no way to find the correct one
+                    throw new IllegalStateException("More than one incorrect message, no way to find correct one.");
+                }
             }
         }
     }

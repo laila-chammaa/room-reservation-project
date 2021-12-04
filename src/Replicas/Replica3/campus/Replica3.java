@@ -18,15 +18,11 @@ public class Replica3 extends Replica {
         );
     }
 
-    public Replica3(boolean inducedCrash) {
+    public Replica3(boolean inducedCrash, boolean inducedByzantineFailure) {
         super(
-                new CampusImpl("DVL", ports.getDvlPort(), new HashMap<String, Integer>(){{ put("DVL", ports.getDvlPort()); put("KKL", ports.getKklPort()); put("WST", ports.getWstPort()); }}, true),
-                new CampusImpl("KKL", ports.getKklPort(), new HashMap<String, Integer>(){{ put("DVL", ports.getDvlPort()); put("KKL", ports.getKklPort()); put("WST", ports.getWstPort()); }}, true),
-                new CampusImpl("WST", ports.getWstPort(), new HashMap<String, Integer>(){{ put("DVL", ports.getDvlPort()); put("KKL", ports.getKklPort()); put("WST", ports.getWstPort()); }}, true)
+                new CampusImpl("DVL", ports.getDvlPort(), new HashMap<String, Integer>(){{ put("DVL", ports.getDvlPort()); put("KKL", ports.getKklPort()); put("WST", ports.getWstPort()); }}, inducedCrash, inducedByzantineFailure),
+                new CampusImpl("KKL", ports.getKklPort(), new HashMap<String, Integer>(){{ put("DVL", ports.getDvlPort()); put("KKL", ports.getKklPort()); put("WST", ports.getWstPort()); }}, inducedCrash, inducedByzantineFailure),
+                new CampusImpl("WST", ports.getWstPort(), new HashMap<String, Integer>(){{ put("DVL", ports.getDvlPort()); put("KKL", ports.getKklPort()); put("WST", ports.getWstPort()); }}, inducedCrash, inducedByzantineFailure)
         );
-
-        dvlThread = new Thread((CampusImpl)dvlCampus);
-        kklThread = new Thread((CampusImpl)kklCampus);
-        wstThread = new Thread((CampusImpl)wstCampus);
     }
 }

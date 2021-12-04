@@ -11,8 +11,8 @@ public class ReplicaManagerDriverCrash {
     public static void main(String[] args) throws IOException {
         Replica replica1 = new Replica1();
         Replica replica2 = new Replica2();
-        Replica replica3 = new Replica3(true);
-        Replica replica4 = new Replica4();
+        Replica replica3 = new Replica3(false, true);
+        Replica replica4 = new Replica4(true, false);
 
         ReplicaManager rm1 = new ReplicaManager(1, replica1);
         ReplicaManager rm2 = new ReplicaManager(2, replica2);
